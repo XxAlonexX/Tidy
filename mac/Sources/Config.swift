@@ -9,7 +9,7 @@ enum Config {
     static let dodoLiveMode = true
 
     static let priceLabel = "₹69"
-    static let appName = "Jev Cleaner"
+    static let appName = "Tidy"
 
     static var dodoAPIBase: String {
         dodoLiveMode ? "https://live.dodopayments.com" : "https://test.dodopayments.com"

@@ -138,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             panel.canChooseDirectories = false
             panel.allowedContentTypes = [.image]
             panel.prompt = "Use as Wallpaper"
-            panel.message = "Choose a picture for Jev Cleaner's desktop"
+            panel.message = "Choose a picture for Tidy's desktop"
             panel.directoryURL = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask).first
             let response = await panel.beginSheetModal(for: window)
             guard response == .OK, let url = panel.url else { return NSNull() }

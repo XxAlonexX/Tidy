@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds "Jev Cleaner.app" (universal) and "JevCleaner-<version>.dmg" in mac/build/.
+# Builds "Tidy.app" (universal) and "Tidy-<version>.dmg" in mac/build/.
 #
 #   ./build.sh                                   # ad-hoc signed (fine for testing; Gatekeeper warns on other Macs)
 #   SIGN_ID="Developer ID Application: Name (TEAMID)" NOTARY_PROFILE=jev ./build.sh
@@ -10,9 +10,9 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-APP_NAME="Jev Cleaner"
-EXEC="JevCleaner"
-BUNDLE_ID="${BUNDLE_ID:-com.jevcleaner.app}"
+APP_NAME="Tidy"
+EXEC="Tidy"
+BUNDLE_ID="${BUNDLE_ID:-com.tidyapp.mac}"
 VERSION="${VERSION:-1.0.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 MIN_MACOS="13.0"
@@ -20,7 +20,7 @@ SIGN_ID="${SIGN_ID:--}"
 
 BUILD="build"
 APP="$BUILD/$APP_NAME.app"
-DMG="$BUILD/JevCleaner-$VERSION.dmg"
+DMG="$BUILD/Tidy-$VERSION.dmg"
 
 rm -rf "$APP" "$DMG" "$BUILD/dmg" "$BUILD/obj"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$BUILD/obj"
@@ -61,9 +61,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>Free to use. Support it once for ₹69 if you love it.</string>
-  <key>NSDesktopFolderUsageDescription</key><string>Jev Cleaner sorts the files on your Desktop into folders.</string>
-  <key>NSDocumentsFolderUsageDescription</key><string>Jev Cleaner sorts the files in folders you choose.</string>
-  <key>NSDownloadsFolderUsageDescription</key><string>Jev Cleaner sorts the files in folders you choose.</string>
+  <key>NSDesktopFolderUsageDescription</key><string>Tidy sorts the files on your Desktop into folders.</string>
+  <key>NSDocumentsFolderUsageDescription</key><string>Tidy sorts the files in folders you choose.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>Tidy sorts the files in folders you choose.</string>
 </dict>
 </plist>
 PLIST

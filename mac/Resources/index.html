@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jev Cleaner</title>
+<title>Tidy</title>
 <style>
   :root {
     --menubar-h: 30px;
@@ -369,7 +369,7 @@
     </div>
 
     <section class="tabpane" data-pane="general" role="tabpanel">
-      <p class="lead" id="welcomeLead" hidden>Welcome! Jev Cleaner uses <b>Jev</b>, TypeSafe's AI model, to sort files whose names don't give them away. Add your TypeSafe API key to switch it on. Screenshots, PDFs and other obvious files are sorted even without one.</p>
+      <p class="lead" id="welcomeLead" hidden>Welcome! Tidy uses <b>Jev</b>, TypeSafe's AI model, to sort files whose names don't give them away. Add your TypeSafe API key to switch it on. Screenshots, PDFs and other obvious files are sorted even without one.</p>
       <h3>TypeSafe API key</h3>
       <div class="row">
         <input type="password" id="keyInput" placeholder="Paste your TypeSafe API key" autocomplete="off" spellcheck="false">
@@ -394,9 +394,9 @@
 
     <section class="tabpane" data-pane="license" role="tabpanel" hidden>
       <h3>License</h3>
-      <div id="licensedBox" hidden><p>✅ Licensed<span id="licEmail"></span>. Thank you for supporting Jev Cleaner!</p></div>
+      <div id="licensedBox" hidden><p>✅ Licensed<span id="licEmail"></span>. Thank you for supporting Tidy!</p></div>
       <div id="unlicensedBox">
-        <p class="hint">Jev Cleaner is free. A one-time <b class="price"></b> payment removes the daily reminder forever.</p>
+        <p class="hint">Tidy is free. A one-time <b class="price"></b> payment removes the daily reminder forever.</p>
         <div class="row">
           <input id="licInput" placeholder="License key from your receipt email" autocomplete="off" spellcheck="false">
           <button class="btn" id="activateBtn">Activate</button>
@@ -420,7 +420,7 @@
 <div class="modal" id="nagModal" hidden>
   <div class="card nag" role="dialog" aria-modal="true" aria-labelledby="nagTitle">
     <div class="heart" aria-hidden="true">♥</div>
-    <h2 id="nagTitle">Enjoying Jev Cleaner?</h2>
+    <h2 id="nagTitle">Enjoying Tidy?</h2>
     <p>It's free, and it stays free. If it saved you some time, a one-time <b class="price"></b> keeps it going and removes this reminder for good.</p>
     <div class="actions">
       <button class="btn primary big" id="nagBuy">Support for <span class="price"></span></button>
@@ -498,7 +498,7 @@ function shortName(name, width = 26) {
 function termHeader() {
   $("termbody").innerHTML = "";
   const opts = state.categories.map((c) => `"${c.toLowerCase()}"`).join(",");
-  termLine(`<span class="c-mute"># jev cleaner — powered by Jev (TypeSafe System One)</span>`);
+  termLine(`<span class="c-mute"># tidy — powered by Jev (TypeSafe System One)</span>`);
   termLine(`<span class="c-cmd">$ jev decide '{"state": &lt;file&gt;, "type": "choice",</span>`);
   termLine(`<span class="c-str">    "options": [${esc(opts)}]}'</span> <span class="c-mute"># × ${state.files.length}</span>`);
 }

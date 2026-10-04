@@ -3,7 +3,7 @@ import Security
 
 /// The user's own TypeSafe key, kept in the login Keychain.
 enum APIKeyStore {
-    private static let service = "com.jevcleaner.typesafe-api-key"
+    private static let service = "com.tidyapp.mac.typesafe-api-key"
 
     static func load() -> String? {
         let query: [String: Any] = [

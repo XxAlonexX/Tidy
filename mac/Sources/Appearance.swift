@@ -54,7 +54,7 @@ enum Appearance {
     }
 
     static func importWallpaper(from url: URL) throws {
-        guard let data = jpeg(from: url) else { throw JevError.http(0, "That file isn't an image Jev Cleaner can read.") }
+        guard let data = jpeg(from: url) else { throw JevError.http(0, "That file isn't an image Tidy can read.") }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try data.write(to: folder.appendingPathComponent("Wallpaper.jpg"), options: .atomic)
     }
