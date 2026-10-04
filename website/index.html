@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev Cleaner — Your Mac Desktop, sorted in seconds</title>
+<meta name="description" content="Jev Cleaner sorts the clutter on your Mac's Desktop into tidy folders. Rules for the obvious files, Jev AI for the rest. Preview everything, undo anything. Free.">
+<meta property="og:title" content="Jev Cleaner — Your Mac Desktop, sorted in seconds">
+<meta property="og:description" content="Rules for the obvious files, Jev AI for the rest. Preview everything, undo anything. Free for macOS.">
+<meta name="theme-color" content="#02040b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%2302040b'/%3E%3Cstop offset='1' stop-color='%230d2a5c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23s)'/%3E%3Cpath d='M14 26a4 4 0 0 1 4-4h9l4 4h15a4 4 0 0 1 4 4v14a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z' fill='%235aa9ff'/%3E%3Cpath d='M46 10q1.5 6 6 7-4.5 1-6 7-1.5-6-6-7 4.5-1 6-7z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<style>
+  /* ============ Edit these two links before you ship ============ */
+  /* DOWNLOAD: href of every [data-download] link (put the DMG next to this file, or a GitHub release URL) */
+  /* BUY: the Dodo Payments checkout link is in every [data-buy] link */
+
+  :root {
+    --bg: #02040b;
+    --ink: #f2f5fa;
+    --muted: #9aa4b5;
+    --faint: #5d6778;
+    --line: rgba(255, 255, 255, .09);
+    --panel: rgba(12, 16, 28, .72);
+    --panel-solid: #0b1020;
+    --accent: #5aa9ff;
+    --accent-2: #a78bfa;
+    --pink: #f472b6;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --serif: "Instrument Serif", Georgia, serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --wrap: 1140px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  a { color: inherit; }
+  img, svg { display: block; }
+  ::selection { background: rgba(90, 169, 255, .35); }
+
+  /* Fallback sky if WebGL / the CDN is unavailable */
+  #sky {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 140% 55% at 60% 112%, #e9f3ff 0%, #9cc8f5 14%, #3f7fc4 24%, #173c73 33%, rgba(10,24,52,0) 46%),
+      linear-gradient(180deg, #02040b 0%, #071430 55%, #0d2a5c 100%);
+  }
+  #scene { position: fixed; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 1.2s; }
+  #scene.ready { opacity: 1; }
+  main, header, footer { position: relative; z-index: 2; }
+  main { overflow-x: clip; } /* clip, not hidden: keeps the hero's sticky stage working */
+
+  .wrap { width: min(var(--wrap), 100% - 32px); margin: 0 auto; }
+
+  /* ---------- Nav ---------- */
+  .nav {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
+    width: min(var(--wrap), 100% - 24px); display: flex; align-items: center; gap: 22px;
+    padding: 9px 10px 9px 16px; border-radius: 14px;
+    background: rgba(8, 12, 22, .55); border: 1px solid var(--line);
+    backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; letter-spacing: -.01em; }
+  .brand svg { width: 28px; height: 28px; }
+  .nav ul { display: flex; gap: 4px; list-style: none; margin: 0 auto; padding: 0; }
+  .nav ul a { display: block; padding: 6px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; }
+  .nav ul a:hover { color: var(--ink); background: rgba(255,255,255,.06); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; cursor: pointer;
+    font: 600 15px/1 var(--sans); text-decoration: none; padding: 13px 20px; border-radius: 11px;
+    transition: transform .15s, box-shadow .2s, background .2s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #04101f; box-shadow: 0 8px 30px rgba(90,169,255,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+  .btn-primary:hover { box-shadow: 0 10px 40px rgba(90,169,255,.5), inset 0 1px 0 rgba(255,255,255,.35); }
+  .btn-ghost { background: rgba(255,255,255,.07); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+  .btn-ghost:hover { background: rgba(255,255,255,.12); }
+  .btn-pink { background: rgba(244,114,182,.16); color: #f9a8d4; box-shadow: inset 0 0 0 1px rgba(244,114,182,.3); }
+  .btn-pink:hover { background: rgba(244,114,182,.26); }
+  .btn-sm { padding: 9px 14px; font-size: 14px; border-radius: 9px; }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* ---------- Hero (pinned while the 3D files get sorted) ---------- */
+  .hero { height: 260vh; }
+  .stage { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; flex-direction: column; }
+  .hero-copy {
+    position: relative; padding-top: clamp(104px, 15vh, 150px); max-width: 780px;
+    text-shadow: 0 2px 30px rgba(2,4,11,.9);
+  }
+  .hero-copy::before {
+    content: ""; position: absolute; z-index: -1; left: -14%; right: -22%; top: 12%; bottom: -14%;
+    background: radial-gradient(closest-side, rgba(2,4,11,.82), rgba(2,4,11,.5) 60%, transparent);
+    pointer-events: none;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; font: 600 12.5px var(--sans); letter-spacing: .02em;
+    color: #cfe3ff; padding: 6px 12px 6px 8px; border-radius: 99px; background: rgba(90,169,255,.12);
+    box-shadow: inset 0 0 0 1px rgba(90,169,255,.28); text-shadow: none;
+  }
+  .eyebrow b { background: var(--accent); color: #04101f; border-radius: 99px; padding: 2px 8px; font-size: 11px; }
+  h1 {
+    font-size: clamp(42px, 6.2vw, 80px); line-height: 1; letter-spacing: -.035em; font-weight: 800; margin: 22px 0 20px;
+  }
+  .serif { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -.01em; }
+  .grad { background: linear-gradient(100deg, #9cc8f5, #5aa9ff 40%, #a78bfa 80%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: .08em; }
+  .hero-copy p.sub { font-size: clamp(17px, 1.6vw, 19px); color: #c4ccd9; max-width: 540px; margin: 0 0 30px; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .meta { margin-top: 16px; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .meta span::before { content: "✓ "; color: var(--green); }
+
+  .hero-status {
+    margin-top: auto; margin-bottom: 26px; align-self: center; width: min(560px, 100% - 32px);
+    display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 12px;
+    background: rgba(14,16,22,.78); border: 1px solid var(--line); font: 12.5px/1.4 var(--mono); color: #d4d7dd;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .hero-status .dots { display: flex; gap: 6px; flex: none; }
+  .hero-status .dots i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
+  .hero-status .dots i:nth-child(2) { background: #febc2e; } .hero-status .dots i:nth-child(3) { background: #28c840; }
+  #logLine { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #counter { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #counter b { color: var(--green); }
+  .c-ok { color: var(--green); font-weight: 600; } .c-mute { color: #7d8492; } .c-rule { color: #8ab4f8; } .c-rev { color: var(--yellow); font-weight: 600; }
+  .c-str { color: #e5c07b; }
+
+  /* ---------- Sections ---------- */
+  .band { position: relative; padding: clamp(80px, 12vw, 140px) 0; }
+  .band.solid { background: linear-gradient(180deg, rgba(2,4,11,.0), rgba(2,4,11,.88) 120px, rgba(2,4,11,.92)); backdrop-filter: blur(2px); }
+  .kicker { font: 600 13px var(--mono); color: var(--accent); letter-spacing: .04em; margin-bottom: 14px; }
+  h2 { font-size: clamp(32px, 4.4vw, 54px); line-height: 1.05; letter-spacing: -.03em; margin: 0 0 18px; font-weight: 800; }
+  .lede { font-size: 18px; color: #b8c1cf; max-width: 620px; margin: 0; }
+  .head { margin-bottom: 54px; }
+  .head.center { text-align: center; } .head.center .lede { margin: 0 auto; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+  .step {
+    position: relative; padding: 28px 26px 26px; border-radius: 18px; background: var(--panel);
+    border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); overflow: hidden;
+  }
+  .step::before {
+    counter-increment: s; content: "0" counter(s); font: 600 13px var(--mono); color: var(--accent);
+    display: inline-block; padding: 4px 9px; border-radius: 7px; background: rgba(90,169,255,.1); margin-bottom: 18px;
+  }
+  .step h3 { margin: 0 0 8px; font-size: 21px; letter-spacing: -.01em; }
+  .step p { margin: 0; color: var(--muted); font-size: 15px; }
+  .step .viz { height: 112px; margin: 0 -6px 18px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); position: relative; overflow: hidden; }
+  kbd { font: 600 12px var(--mono); padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,.08); border: 1px solid var(--line); border-bottom-width: 2px; }
+
+  /* mini visuals */
+  .mini-files { position: absolute; inset: 0; }
+  .mf { position: absolute; width: 26px; height: 32px; border-radius: 3px; background: #eef2f8; clip-path: polygon(0 0, 70% 0, 100% 22%, 100% 100%, 0 100%); }
+  .mf::after { content: ""; position: absolute; left: 4px; right: 4px; bottom: 5px; height: 7px; border-radius: 2px; background: var(--c); }
+  .mini-chip { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font: 600 12px var(--mono); padding: 6px 10px; border-radius: 8px; background: rgba(14,16,22,.9); border: 1px solid var(--line); white-space: nowrap; }
+  .mini-term { position: absolute; inset: 10px 12px; font: 11.5px/1.65 var(--mono); color: #d4d7dd; }
+  .mini-term div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-folders { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .fold { width: 44px; height: 34px; position: relative; }
+  .fold::before { content: ""; position: absolute; inset: 5px 0 0 0; background: linear-gradient(#8fc2ff, #5aa9ff); border-radius: 4px 5px 5px 5px; }
+  .fold::after { content: ""; position: absolute; left: 0; top: 0; width: 18px; height: 8px; background: #4a8fe0; border-radius: 3px 3px 0 0; z-index: -1; }
+  .fold span { position: absolute; top: -8px; right: -8px; z-index: 1; font: 700 10px var(--mono); background: var(--green); color: #04101f; border-radius: 99px; padding: 2px 5px; }
+  .undo-pill { position: absolute; right: 10px; bottom: 10px; font: 600 11px var(--sans); padding: 5px 9px; border-radius: 7px; background: rgba(255,255,255,.1); }
+
+  /* Rules + Jev split */
+  .split { display: grid; grid-template-columns: 1fr 1.08fr; gap: clamp(28px, 5vw, 70px); align-items: center; }
+  .pill-list { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 14px; }
+  .pill-list li { display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: start; }
+  .pill-list .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; background: rgba(255,255,255,.06); border: 1px solid var(--line); }
+  .pill-list b { display: block; font-size: 16px; }
+  .pill-list span { color: var(--muted); font-size: 15px; }
+  .term {
+    border-radius: 14px; background: rgba(20,22,27,.94); border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 .5px #000; overflow: hidden;
+  }
+  .term .bar { display: flex; align-items: center; gap: 7px; padding: 12px 14px; }
+  .term .bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+  .term .bar i:nth-child(2) { background: #febc2e; } .term .bar i:nth-child(3) { background: #28c840; }
+  .term .bar span { margin-left: 8px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  #termBody {
+    height: 330px; padding: 4px 18px 16px; font: 12.5px/1.65 var(--mono); color: #d4d7dd;
+    display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 50px); mask-image: linear-gradient(transparent, #000 50px);
+  }
+  #termBody div { white-space: pre; overflow: hidden; text-overflow: ellipsis; flex: none; animation: lineIn .25s ease; }
+  @keyframes lineIn { from { opacity: 0; transform: translateY(4px); } }
+  .cursor { display: inline-block; width: 7px; height: 14px; background: #d4d7dd; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Features */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .feat {
+    padding: 24px 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: border-color .2s, transform .2s;
+  }
+  .feat:hover { border-color: rgba(90,169,255,.35); transform: translateY(-2px); }
+  .feat .ic { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; margin-bottom: 16px; background: linear-gradient(135deg, rgba(90,169,255,.22), rgba(167,139,250,.18)); border: 1px solid rgba(90,169,255,.25); }
+  .feat .ic svg { width: 20px; height: 20px; stroke: #cfe3ff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .feat h3 { margin: 0 0 6px; font-size: 16.5px; letter-spacing: -.005em; }
+  .feat p { margin: 0; font-size: 14.5px; color: var(--muted); line-height: 1.55; }
+  .feat.wide { grid-column: span 2; }
+
+  /* Folders */
+  .folders { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .folder {
+    display: grid; grid-template-columns: 46px 1fr; gap: 14px; align-items: center; padding: 16px 18px;
+    border-radius: 14px; background: var(--panel); border: 1px solid var(--line);
+  }
+  .folder .fold { width: 46px; height: 36px; }
+  .folder .fold::before { background: linear-gradient(color-mix(in srgb, var(--c) 60%, white), var(--c)); }
+  .folder .fold::after { background: color-mix(in srgb, var(--c) 75%, black); }
+  .folder b { display: block; font-size: 15.5px; }
+  .folder span { font-size: 13.5px; color: var(--muted); line-height: 1.45; display: block; }
+
+  /* Personalise */
+  .studio { display: grid; grid-template-columns: 1.35fr 1fr; gap: clamp(28px, 4vw, 56px); align-items: center; }
+  .mock {
+    position: relative; aspect-ratio: 16 / 10.4; border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.14); box-shadow: 0 40px 100px rgba(0,0,0,.6);
+  }
+  .mock .wp { position: absolute; inset: 0; transition: opacity .5s; }
+  .mock .mbar { position: absolute; top: 0; left: 0; right: 0; height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: rgba(12,14,20,.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: 11px; }
+  .mock .mbar .chip { padding: 1px 7px; border-radius: 5px; background: rgba(255,255,255,.1); }
+  .mock .mbar .go { margin-left: auto; padding: 2px 9px; border-radius: 5px; background: var(--maccent, #5aa9ff); color: #04101f; font-weight: 700; transition: background .3s; }
+  .mock .mwin {
+    position: absolute; right: 4%; top: 13%; width: 34%; padding: 10px 10px 6px; border-radius: 10px;
+    background: rgba(30,32,38,.86); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    font-size: 11px;
+  }
+  .mock .mwin .lights { display: flex; gap: 5px; margin-bottom: 8px; }
+  .mock .mwin .lights i { width: 8px; height: 8px; border-radius: 50%; background: #ff5f57; }
+  .mock .mwin .lights i:nth-child(2) { background: #febc2e; } .mock .mwin .lights i:nth-child(3) { background: #28c840; }
+  .mock .mwin div.r { display: flex; justify-content: space-between; padding: 3px 5px; border-radius: 5px; }
+  .mock .mwin div.r.hl { background: color-mix(in srgb, var(--maccent, #5aa9ff) 30%, transparent); transition: background .3s; }
+  .mock .mterm { position: absolute; left: 4%; bottom: 6%; width: 46%; height: 30%; border-radius: 10px; background: rgba(20,22,27,.92); border: 1px solid rgba(255,255,255,.1); padding: 10px 12px; font: 9.5px/1.6 var(--mono); color: #aab; overflow: hidden; }
+  .mock .mfiles { position: absolute; left: 6%; top: 14%; display: grid; grid-template-columns: repeat(4, 30px); gap: 16px 18px; }
+  .mock .mfiles .mf { position: relative; }
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 26px 0 18px; }
+  .sw { cursor: pointer; border: 0; padding: 0; background: none; color: var(--muted); font: 500 12.5px var(--sans); text-align: center; }
+  .sw .t { display: block; aspect-ratio: 16/10; border-radius: 10px; margin-bottom: 6px; box-shadow: 0 0 0 1px rgba(255,255,255,.14); transition: box-shadow .15s, transform .15s; }
+  .sw:hover .t { transform: translateY(-2px); }
+  .sw[aria-pressed="true"] { color: var(--ink); }
+  .sw[aria-pressed="true"] .t { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(90,169,255,.25); }
+  .accents { display: flex; gap: 12px; align-items: center; }
+  .accents button { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; }
+  .accents button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px currentColor; }
+  .small-note { font-size: 14px; color: var(--muted); margin-top: 18px; }
+
+  /* Wallpaper presets: identical to the app's */
+  .wp-night { background: radial-gradient(ellipse 140% 55% at 60% 112%, #e9f3ff 0%, #9cc8f5 14%, #3f7fc4 24%, #173c73 33%, rgba(10,24,52,0) 46%), radial-gradient(ellipse 60% 40% at 70% 40%, rgba(40,70,140,.35), transparent 70%), linear-gradient(180deg, #02040b 0%, #071430 55%, #0d2a5c 100%); }
+  .wp-aurora { background: radial-gradient(ellipse 70% 38% at 28% 30%, rgba(52,211,153,.55), transparent 70%), radial-gradient(ellipse 55% 30% at 68% 20%, rgba(45,212,191,.42), transparent 70%), radial-gradient(ellipse 45% 28% at 52% 42%, rgba(167,139,250,.38), transparent 70%), radial-gradient(ellipse 120% 30% at 50% 108%, #0b1d26 0 60%, transparent 61%), linear-gradient(180deg, #020611 0%, #04121c 55%, #0a1f2a 100%); }
+  .wp-dusk { background: radial-gradient(circle at 50% 80%, #ffe2b0 0, #ff9a6b 7%, rgba(255,120,110,0) 28%), radial-gradient(ellipse 110% 30% at 50% 112%, #2a1340 0 60%, transparent 61%), linear-gradient(180deg, #120c2c 0%, #3b1d5e 35%, #a23b72 62%, #f2785c 82%, #ffc48a 100%); }
+  .wp-ocean { background: radial-gradient(ellipse 120% 60% at 50% -10%, rgba(125,211,252,.4), transparent 60%), radial-gradient(ellipse 50% 25% at 25% 70%, rgba(56,189,248,.18), transparent 70%), linear-gradient(180deg, #0b3a5c 0%, #072a45 45%, #031726 100%); }
+  .wp-dunes { background: radial-gradient(ellipse 80% 38% at 18% 104%, #9a3412 0 60%, transparent 61%), radial-gradient(ellipse 85% 44% at 86% 104%, #c2410c 0 60%, transparent 61%), radial-gradient(ellipse 130% 56% at 50% 112%, #ea7a2a 0 60%, transparent 61%), radial-gradient(circle at 72% 30%, rgba(255,250,235,.9) 0, rgba(255,240,200,0) 9%), linear-gradient(180deg, #7dd3fc 0%, #fde68a 55%, #fdba74 100%); }
+  .wp-graphite { background: radial-gradient(ellipse 80% 60% at 50% 0%, #3a3d45, transparent 70%), linear-gradient(180deg, #25272d, #121316); }
+
+  /* Privacy */
+  .privacy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .pcard { padding: 26px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+  .pcard h3 { margin: 0 0 12px; font-size: 17px; display: flex; align-items: center; gap: 10px; }
+  .pcard h3 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 12px var(--c); }
+  .pcard ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+  .pcard li { margin: 5px 0; }
+  .pcard code { font: 12.5px var(--mono); color: #cbd5e1; background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 4px; }
+
+  /* Pricing */
+  .pricing { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 880px; margin: 0 auto; }
+  .plan { position: relative; padding: 32px 30px 30px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .plan.hot { background: linear-gradient(180deg, rgba(244,114,182,.12), rgba(12,16,28,.8) 55%); border-color: rgba(244,114,182,.35); }
+  .plan .tag { position: absolute; top: 18px; right: 18px; font: 600 11.5px var(--sans); padding: 4px 9px; border-radius: 99px; background: rgba(244,114,182,.18); color: #f9a8d4; }
+  .plan h3 { margin: 0; font-size: 16px; color: var(--muted); font-weight: 600; }
+  .price { font-size: 54px; font-weight: 800; letter-spacing: -.04em; margin: 8px 0 2px; }
+  .price small { font-size: 16px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+  .plan ul { list-style: none; padding: 0; margin: 20px 0 28px; display: grid; gap: 10px; font-size: 15px; color: #c4ccd9; flex: 1; }
+  .plan li::before { content: "✓"; display: inline-block; width: 1.2em; line-height: 1; color: var(--green); font-weight: 700; margin-right: 6px; }
+  .plan.hot li::before { color: var(--pink); content: "♥"; }
+  .footnote { text-align: center; color: var(--muted); font-size: 14px; margin-top: 26px; }
+
+  /* FAQ */
+  .faq { max-width: 780px; margin: 0 auto; }
+  details { border-bottom: 1px solid var(--line); }
+  summary { cursor: pointer; list-style: none; padding: 22px 40px 22px 0; font-size: 17.5px; font-weight: 600; position: relative; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 24px; font-weight: 300; color: var(--muted); transition: transform .2s; }
+  details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+  details p { margin: -6px 0 22px; color: var(--muted); font-size: 15.5px; max-width: 680px; }
+
+  /* Final CTA + footer */
+  .final { text-align: center; }
+  .final h2 { font-size: clamp(38px, 6vw, 72px); }
+  .final .cta-row { justify-content: center; margin-top: 30px; }
+  footer { border-top: 1px solid var(--line); padding: 34px 0 44px; color: var(--faint); font-size: 14px; background: rgba(2,4,11,.95); }
+  footer .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; }
+  footer nav { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  footer a { color: var(--muted); text-decoration: none; } footer a:hover { color: var(--ink); }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 980px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .split, .studio { grid-template-columns: 1fr; }
+    .folders { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 760px) {
+    .nav ul { display: none; }
+    .nav .btn { margin-left: auto; }
+    .steps, .privacy, .pricing { grid-template-columns: 1fr; }
+    .hero { height: 230vh; }
+    .hero-copy { padding-top: 104px; }
+    #termBody { height: 280px; font-size: 11.5px; }
+  }
+  @media (max-width: 520px) {
+    .hero .meta, .hero .btn-ghost { display: none; }
+    .grid, .folders { grid-template-columns: 1fr; }
+    .feat.wide { grid-column: auto; }
+    .swatches { grid-template-columns: repeat(3, 1fr); }
+    .hero-status { font-size: 11px; }
+    .mock .mwin { width: 42%; font-size: 9px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .cursor, #termBody div { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<header class="nav">
+  <a class="brand" href="#top" aria-label="Jev Cleaner home">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lg-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#02040b"/><stop offset="1" stop-color="#0d2a5c"/></linearGradient><linearGradient id="lg-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc2ff"/><stop offset="1" stop-color="#5aa9ff"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lg-s)"/><ellipse cx="32" cy="74" rx="44" ry="22" fill="#9cc8f5" opacity=".35"/><path d="M13 25a3.5 3.5 0 0 1 3.5-3.5H25l4 4h17.5A3.5 3.5 0 0 1 50 29v15a3.5 3.5 0 0 1-3.5 3.5h-30A3.5 3.5 0 0 1 13 44z" fill="#4a8fe0"/><rect x="13" y="28" width="37" height="19.5" rx="3.5" fill="url(#lg-f)"/><path d="M47 9q1.6 6.4 6.5 7.5-4.9 1.1-6.5 7.5-1.6-6.4-6.5-7.5 4.9-1.1 6.5-7.5z" fill="#fff"/></svg>
+    Jev Cleaner
+  </a>
+  <ul>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <a class="btn btn-primary btn-sm" href="JevCleaner-1.0.0.dmg" data-download>Download</a>
+</header>
+
+<main id="top">
+  <!-- ===== Hero: scroll and the 3D desktop sorts itself ===== -->
+  <section class="hero" id="hero">
+    <div class="stage">
+      <div class="wrap hero-copy">
+        <span class="eyebrow"><b>NEW</b> Make it yours: wallpapers, accents &amp; glass</span>
+        <h1>Your Desktop,<br><span class="serif grad">sorted</span> in&nbsp;seconds.</h1>
+        <p class="sub">Jev Cleaner files every screenshot, PDF, clip and script on your Mac into tidy folders. You see the whole plan before a single file moves.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="JevCleaner-1.0.0.dmg" data-download>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 5c.7-.8 1.2-2 1-3.2-1 0-2.2.7-3 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.3-.6 3-1.3z"/></svg>
+            Download for Mac — free
+          </a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+        <div class="meta"><span>Under 1 MB</span><span>macOS 13+</span><span>Apple silicon &amp; Intel</span><span>Undo anything</span></div>
+      </div>
+      <div class="hero-status" role="status" aria-live="off">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span id="logLine"><span class="c-mute"># a very messy Desktop. scroll to let Jev sort it ↓</span></span>
+        <span id="counter"><b id="sortedN">0</b> / <span id="totalN">0</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== How it works ===== -->
+  <section class="band solid" id="how">
+    <div class="wrap">
+      <div class="head reveal">
+        <div class="kicker">// how it works</div>
+        <h2>Three steps. <span class="serif">Zero</span> surprises.</h2>
+        <p class="lede">Jev Cleaner opens on your Desktop and shows the mess the way Finder does, with real thumbnails. Then it plans a home for every file.</p>
+      </div>
+      <div class="steps">
+        <article class="step reveal">
+          <div class="viz">
+            <div class="mini-files">
+              <i class="mf" style="--c:#0ea5e9;left:12%;top:18%;transform:rotate(-8deg)"></i>
+              <i class="mf" style="--c:#e5484d;left:32%;top:46%;transform:rotate(6deg)"></i>
+              <i class="mf" style="--c:#7c3aed;left:52%;top:14%;transform:rotate(-3deg)"></i>
+              <i class="mf" style="--c:#22c55e;left:70%;top:48%;transform:rotate(10deg)"></i>
+              <i class="mf" style="--c:#d946ef;left:84%;top:16%;transform:rotate(-12deg)"></i>
+            </div>
+            <span class="mini-chip">~/Desktop <span class="c-mute">⌘O</span></span>
+          </div>
+          <h3>Point it at a folder</h3>
+          <p>It starts on your Desktop. Press <kbd>⌘O</kbd> to tidy Downloads, Documents or any other folder.</p>
+        </article>
+        <article class="step reveal">
+          <div class="viz">
+            <div class="mini-term">
+              <div>Screenshot 2026-09…  → <span class="c-ok">screenshots</span> · <span class="c-rule">rule</span></div>
+              <div>Q3 board deck.key   → <span class="c-ok">docs</span> · <span class="c-rule">rule</span></div>
+              <div>untitled-final      → <span class="c-ok">code</span> · 92%</div>
+              <div>IMG_4471 copy       <span class="c-rev">? images</span> · 41%</div>
+            </div>
+          </div>
+          <h3>Watch the preview</h3>
+          <p>Obvious files are sorted by rules right away. Jev looks at the rest and picks a folder, along with a confidence score.</p>
+        </article>
+        <article class="step reveal">
+          <div class="viz">
+            <div class="mini-folders">
+              <span class="fold"><span>12</span></span><span class="fold"><span>31</span></span><span class="fold"><span>7</span></span>
+            </div>
+            <span class="undo-pill">↶ Undo</span>
+          </div>
+          <h3>Move, or don't</h3>
+          <p>Nothing moves until you press <b>Move files</b>. Unsure files stay where they are. If you change your mind, <b>Undo</b> puts everything back.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Rules + Jev ===== -->
+  <section class="band solid" id="jev">
+    <div class="wrap split">
+      <div class="reveal">
+        <div class="kicker">// rules first, AI second</div>
+        <h2>Fast where it's obvious.<br><span class="serif grad">Smart</span> where it isn't.</h2>
+        <p class="lede">Most clutter gives itself away by its name. The rest is where Jev Cleaner earns its keep.</p>
+        <ul class="pill-list">
+          <li><span class="ic">⚡</span><div><b>Instant rules, no network</b><span>Screenshots, screen recordings, PDFs, spreadsheets, code and archives are matched by name and type in milliseconds.</span></div></li>
+          <li><span class="ic">✦</span><div><b>Jev for the ambiguous ones</b><span>Files like <code style="font:13px var(--mono)">final_v2</code>, <code style="font:13px var(--mono)">notes</code> or files with no extension go to Jev, TypeSafe's judgment model. It reads the name, the type and a short peek at text files.</span></div></li>
+          <li><span class="ic">◎</span><div><b>You set the bar</b><span>Choose 50%, 70% or 90% minimum confidence. Anything below the bar stays in place for you to review.</span></div></li>
+        </ul>
+      </div>
+      <div class="term reveal" aria-label="Animated example of Jev Cleaner's log">
+        <div class="bar"><i></i><i></i><i></i><span>Jev log</span></div>
+        <div id="termBody"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Features ===== -->
+  <section class="band solid" id="features">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker">// everything it does</div>
+        <h2>Small app. <span class="serif">Serious</span> tidy.</h2>
+        <p class="lede">A native Mac app under 1 MB. No account, no subscription, no background daemon.</p>
+      </div>
+      <div class="grid">
+        <article class="feat wide reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <h3>Preview before anything moves</h3>
+          <p>Watch your files fly into their folders as an animated preview first. Replay it, raise the confidence bar, or walk away. Your files stay put until you press Move.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></div>
+          <h3>One-click undo</h3>
+          <p>Every run is logged in the folder itself, so the last clean can always be reversed exactly.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
+          <h3>Real thumbnails</h3>
+          <p>Quick Look previews of your photos, PDFs, videos and app icons, just like Finder shows them.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <h3>Your key, your Keychain</h3>
+          <p>Your TypeSafe API key is stored in the macOS Keychain. Requests go straight from your Mac to TypeSafe.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20c1 0 1.5-.8 1.5-1.6 0-1.3-1-1.4-1-2.6 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6C22 6 17.5 2 12 2z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg></div>
+          <h3>Make it yours</h3>
+          <p>Six built-in wallpapers, your own photo or your Mac's wallpaper, plus accent colours, glass and icon size.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+          <h3>Native &amp; universal</h3>
+          <p>Built in Swift for Apple silicon and Intel. Runs on macOS 13 Ventura and later.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/></svg></div>
+          <h3>Leaves folders alone</h3>
+          <p>Only loose files at the top of the folder are sorted. Hidden files, aliases and existing folders are never touched.</p>
+        </article>
+        <article class="feat reveal">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
+          <h3>Keyboard first</h3>
+          <p><kbd>⌘O</kbd> choose folder · <kbd>⌘R</kbd> rescan · <kbd>⌘↩</kbd> clean · <kbd>⌘,</kbd> settings.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== The nine folders ===== -->
+  <section class="band solid" id="folders">
+    <div class="wrap">
+      <div class="head reveal">
+        <div class="kicker">// where things go</div>
+        <h2>Nine folders. <span class="serif">Every</span> file has a home.</h2>
+        <p class="lede">Folders are only created when something goes in them. Duplicate names get a number instead of overwriting anything.</p>
+      </div>
+      <div class="folders" id="folderGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== Personalise ===== -->
+  <section class="band solid" id="personalize">
+    <div class="wrap studio">
+      <div class="mock reveal" id="mock" aria-label="Preview of Jev Cleaner with the selected wallpaper">
+        <div class="wp wp-night" id="mockWp"></div>
+        <div class="mbar"><span class="chip">~/Desktop</span><span style="opacity:.6">Min confidence 50%</span><span class="go">Clean with Jev</span></div>
+        <div class="mfiles">
+          <i class="mf" style="--c:#0ea5e9"></i><i class="mf" style="--c:#e5484d"></i><i class="mf" style="--c:#7c3aed"></i><i class="mf" style="--c:#22c55e"></i>
+          <i class="mf" style="--c:#d946ef"></i><i class="mf" style="--c:#78716c"></i><i class="mf" style="--c:#2f6fde"></i><i class="mf" style="--c:#0ea5e9"></i>
+        </div>
+        <div class="mwin">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <div class="r"><span>📁 Screenshots</span><b>48</b></div>
+          <div class="r hl"><span>📁 Docs</span><b>23</b></div>
+          <div class="r"><span>📁 Images</span><b>17</b></div>
+          <div class="r"><span>📁 Code</span><b>9</b></div>
+          <div class="r"><span>📁 Archives</span><b>6</b></div>
+        </div>
+        <div class="mterm">
+          <div><span class="c-mute"># jev cleaner — powered by Jev</span></div>
+          <div>notes.md → <span class="c-ok">docs</span> · 97%</div>
+          <div>logo-final.png → <span class="c-ok">images</span> · <span class="c-rule">rule</span></div>
+          <div>build.sh → <span class="c-ok">code</span> · <span class="c-rule">rule</span></div>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="kicker">// new in this version</div>
+        <h2>A desktop that feels like <span class="serif grad">yours</span>.</h2>
+        <p class="lede">Choose a wallpaper, your own photo or your Mac's current wallpaper. Then tune the dim, the glass and the accent colour. Try it:</p>
+        <div class="swatches" id="swatches"></div>
+        <div class="accents" id="siteAccents" aria-label="Accent colour"></div>
+        <p class="small-note">Find it in <b>Settings → Appearance</b>, or right-click the desktop and choose <b>Change Wallpaper…</b></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Privacy ===== -->
+  <section class="band solid" id="privacy">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker">// privacy, plainly</div>
+        <h2>Exactly what leaves your Mac.</h2>
+        <p class="lede">No accounts, no analytics and no Jev Cleaner servers. Here is the complete list.</p>
+      </div>
+      <div class="privacy">
+        <div class="pcard reveal" style="--c:var(--green)">
+          <h3><span class="dot"></span>Stays on your Mac</h3>
+          <ul>
+            <li>Every file sorted by a rule: nothing is sent</li>
+            <li>The contents of photos, videos, PDFs and documents</li>
+            <li>Folder paths and your Desktop layout</li>
+            <li>The undo log (<code>.jev-cleaner-manifest.json</code>)</li>
+          </ul>
+        </div>
+        <div class="pcard reveal" style="--c:var(--accent)">
+          <h3><span class="dot"></span>Sent to TypeSafe (only for Jev)</h3>
+          <ul>
+            <li>File name, extension, size and modified date</li>
+            <li>For plain-text files only: the first 600 characters</li>
+            <li>Sent directly from your Mac, using your own API key</li>
+          </ul>
+        </div>
+        <div class="pcard reveal" style="--c:var(--pink)">
+          <h3><span class="dot"></span>Sent to Dodo Payments (only if you buy)</h3>
+          <ul>
+            <li>Your license key and your Mac's name, to activate it</li>
+            <li>A license check about once a week</li>
+            <li>A failed network check never locks you out</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Pricing ===== -->
+  <section class="band solid" id="pricing">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker">// pricing</div>
+        <h2>Free. <span class="serif">Really.</span></h2>
+        <p class="lede">Every feature is free. If it saves you time, you can support it once.</p>
+      </div>
+      <div class="pricing">
+        <div class="plan reveal">
+          <h3>Jev Cleaner</h3>
+          <div class="price">Free <small>forever</small></div>
+          <ul>
+            <li>Every feature, unlimited cleans</li>
+            <li>Rules sort without any key</li>
+            <li>Jev AI with your own TypeSafe key</li>
+            <li>Preview, replay &amp; one-click undo</li>
+            <li>Wallpapers &amp; appearance controls</li>
+          </ul>
+          <a class="btn btn-ghost" href="JevCleaner-1.0.0.dmg" data-download>Download for Mac</a>
+        </div>
+        <div class="plan hot reveal">
+          <span class="tag">Keeps it going</span>
+          <h3>Supporter</h3>
+          <div class="price">₹69 <small>one time</small></div>
+          <ul>
+            <li>Everything in Free</li>
+            <li>Removes the once-a-day reminder forever</li>
+            <li>A ♥ Supporter badge in the menu bar</li>
+            <li>Directly funds new features</li>
+          </ul>
+          <a class="btn btn-pink" href="https://checkout.dodopayments.com/buy/pdt_0Np0aJHLTsLsCZLnOs7FG?quantity=1" data-buy target="_blank" rel="noopener">♥ Support for ₹69</a>
+        </div>
+      </div>
+      <p class="footnote reveal">Jev requests are billed by TypeSafe to your own key. Get one at <a href="https://console.typesafe.ai/" target="_blank" rel="noopener">console.typesafe.ai</a>.</p>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="band solid" id="faq">
+    <div class="wrap">
+      <div class="head center reveal">
+        <div class="kicker">// questions</div>
+        <h2>Good questions.</h2>
+      </div>
+      <div class="faq reveal">
+        <details><summary>Can it delete or lose my files?</summary><p>No. Jev Cleaner only moves files into new folders, inside the same folder, and only after you press Move files. If a name is already taken, it adds a number instead of overwriting. Every move is logged, so Undo can put each file back where it was.</p></details>
+        <details><summary>Do I need a TypeSafe API key?</summary><p>Not to get started. Screenshots, recordings, documents, code, archives and audio are sorted by rules without any key. A key switches on Jev for files whose names don't give them away. Paste it in Settings and it's saved in your Keychain.</p></details>
+        <details><summary>What is Jev?</summary><p>Jev is TypeSafe's small, fast judgment model. Jev Cleaner gives it the file name, type, size, date and (for text files) a short preview. Jev picks one of the nine folders and says how confident it is. Your confidence bar decides whether the file moves or waits for you.</p></details>
+        <details><summary>Can I clean folders other than the Desktop?</summary><p>Yes. Press <kbd>⌘O</kbd> or click the folder name in the top-left corner to choose Downloads, Documents or any other folder.</p></details>
+        <details><summary>Which Macs does it run on?</summary><p>Any Mac with macOS 13 Ventura or later, Apple silicon or Intel. It's a single universal app under 1 MB.</p></details>
+        <details><summary>macOS says the app can't be checked for malware. What do I do?</summary><p>If you see this, right-click Jev Cleaner in Applications and choose Open, then confirm. You only need to do this once.</p></details>
+        <details><summary>What does the ₹69 do?</summary><p>It removes the once-a-day support reminder forever and helps keep Jev Cleaner going. Every feature is already free. After you pay, your license key arrives by email. Paste it into Settings → License.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="band solid final">
+    <div class="wrap reveal">
+      <h2>Give your Desktop<br>a <span class="serif grad">fresh start</span>.</h2>
+      <p class="lede" style="margin:0 auto">Download it, press Clean with Jev, and watch the clutter sort itself out.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="JevCleaner-1.0.0.dmg" data-download>Download for Mac — free</a>
+        <a class="btn btn-pink" href="https://checkout.dodopayments.com/buy/pdt_0Np0aJHLTsLsCZLnOs7FG?quantity=1" data-buy target="_blank" rel="noopener">♥ Support ₹69</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="yr"></span> Jev Cleaner · Powered by Jev from TypeSafe</span>
+    <nav><a href="#how">How it works</a><a href="#privacy">Privacy</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+  </div>
+</footer>
+
+<script>
+/* ---------- Shared data ---------- */
+const CATEGORIES = [
+  { name: "Screenshots", color: "#5aa9ff", desc: "Screen captures: “Screenshot 2026-…”, CleanShot files.", files: ["Screenshot 2026-09-14 at 10.02.png", "CleanShot 2026-08-02.png", "Screenshot 2026-09-01 at 18.40.png"] },
+  { name: "Recordings", color: "#a78bfa", desc: "Screen recordings and captured screen video.", files: ["Screen Recording 2026-09-03.mov", "Screen Recording 2026-07-21.mov"] },
+  { name: "Videos", color: "#7c3aed", desc: "Movies, clips, exported edits, demo videos.", files: ["launch-teaser.mp4", "wedding_clip.mov", "demo_v3_export.mp4"] },
+  { name: "Audio", color: "#d946ef", desc: "Music, podcasts, voice memos and other sound.", files: ["voice memo 12.m4a", "beat_draft.wav", "podcast-ep4.mp3"] },
+  { name: "Images", color: "#0ea5e9", desc: "Photos, logos and designs that aren't screen captures.", files: ["IMG_4471.heic", "logo-final-FINAL.png", "hero@2x.jpg"] },
+  { name: "Docs", color: "#e5484d", desc: "PDFs, notes, papers, slides, spreadsheets, text.", files: ["Q3 board deck.key", "invoice_8812.pdf", "notes", "budget 2027.xlsx"] },
+  { name: "Code", color: "#22c55e", desc: "Source, scripts, configs, notebooks, dev data.", files: ["deploy.sh", "scratch.py", "untitled-final", "docker-compose.yml"] },
+  { name: "Archives", color: "#a8a29e", desc: "Compressed archives and installers: zip, dmg, pkg.", files: ["Figma-arm64.dmg", "photos-export.zip", "backup.tar.gz"] },
+  { name: "Other", color: "#94a3b8", desc: "Anything that doesn't clearly fit elsewhere.", files: ["thing", "Untitled 3", ".fig-temp-copy"] },
+];
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+document.getElementById("yr").textContent = new Date().getFullYear();
+
+/* ---------- Folder grid ---------- */
+$("folderGrid").innerHTML = CATEGORIES.map((c) =>
+  `<div class="folder reveal" style="--c:${c.color}"><span class="fold"></span><div><b>${c.name}</b><span>${c.desc}</span></div></div>`).join("");
+
+/* ---------- Wallpaper playground (same presets as the app) ---------- */
+const PRESETS = [["night", "Night Earth"], ["aurora", "Aurora"], ["dusk", "Dusk"], ["ocean", "Deep Sea"], ["dunes", "Dunes"], ["graphite", "Graphite"]];
+const ACCENTS = ["#5aa9ff", "#a78bfa", "#f472b6", "#fb923c", "#4ade80", "#2dd4bf"];
+$("swatches").innerHTML = PRESETS.map(([id, n], i) =>
+  `<button class="sw" data-id="${id}" aria-pressed="${i === 0}"><span class="t wp-${id}"></span>${n}</button>`).join("");
+$("siteAccents").innerHTML = ACCENTS.map((c, i) =>
+  `<button data-c="${c}" aria-pressed="${i === 0}" aria-label="Accent ${c}" style="background:${c};color:${c}"></button>`).join("");
+$("swatches").onclick = (e) => {
+  const b = e.target.closest(".sw"); if (!b) return;
+  document.querySelectorAll(".sw").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  $("mockWp").className = "wp wp-" + b.dataset.id;
+};
+$("siteAccents").onclick = (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#siteAccents button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  $("mock").style.setProperty("--maccent", b.dataset.c);
+};
+
+/* ---------- Animated Jev log ---------- */
+(() => {
+  const body = $("termBody");
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const pad = (s, w = 24) => (s.length <= w ? s.padEnd(w) : s.slice(0, w - 1) + "…");
+  const header = [
+    `<span class="c-mute"># jev cleaner — powered by Jev (TypeSafe System One)</span>`,
+    `$ jev decide '{"state": &lt;file&gt;, "type": "choice",`,
+    `<span class="c-str">    "options": ["screenshots","recordings","videos",…]}'</span>`,
+  ];
+  const rows = [];
+  const ruleOnly = new Set(["Screenshots", "Recordings", "Archives", "Audio"]);
+  CATEGORIES.forEach((c) => c.files.forEach((f) => rows.push({ f, c: c.name })));
+  rows.sort(() => Math.random() - 0.5);
+  let i = 0, ok = 0, rev = 0;
+  const push = (html) => {
+    const d = document.createElement("div"); d.innerHTML = html; body.appendChild(d);
+    while (body.children.length > 18) body.firstChild.remove();
+  };
+  const cursor = () => { body.querySelector(".cursor")?.remove(); body.lastElementChild?.insertAdjacentHTML("beforeend", ' <span class="cursor"></span>'); };
+  function reset() { body.innerHTML = ""; header.forEach(push); i = ok = rev = 0; cursor(); }
+  function tick() {
+    if (i >= rows.length) {
+      push(`<span class="c-mute"># done — ${ok} sorted · ${rev} to review · 0 errors</span>`); cursor();
+      return setTimeout(() => { reset(); setTimeout(tick, 900); }, 4200);
+    }
+    const r = rows[i++], name = esc(pad(r.f));
+    const isRule = ruleOnly.has(r.c) || /\.(pdf|key|xlsx|sh|py|yml|zip|dmg|gz|m4a|wav|mp3|mov|mp4)$/i.test(r.f) && !/^(notes|untitled|thing)/i.test(r.f);
+    const conf = 55 + Math.floor(Math.random() * 44);
+    if (!isRule && conf < 62) { rev++; push(`${name} <span class="c-rev">? ${r.c.toLowerCase()}</span> · ${conf}% <span class="c-mute">(left in place)</span>`); }
+    else { ok++; push(`${name} → <span class="c-ok">${r.c.toLowerCase()}</span> · ${isRule ? '<span class="c-rule">rule</span>' : conf + "%"}`); }
+    cursor();
+    setTimeout(tick, isRule ? 260 : 520 + Math.random() * 380);
+  }
+  reset();
+  const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); setTimeout(tick, 400); } });
+  io.observe(body);
+})();
+
+/* ---------- Scroll reveals ---------- */
+(() => {
+  const els = document.querySelectorAll(".reveal");
+  if (reduceMotion || !("IntersectionObserver" in window)) return els.forEach((e) => e.classList.add("in"));
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }), { rootMargin: "0px 0px -8% 0px" });
+  els.forEach((e) => io.observe(e));
+})();
+
+/* Hero scroll progress, shared with the 3D scene (0 = messy, 1 = sorted). */
+/* 0 while the hero is on screen, 1 once a full screen past it: the 3D camera tilts up into the stars. */
+window.heroExit = () => {
+  const r = $("hero").getBoundingClientRect();
+  return Math.min(1, Math.max(0, (innerHeight - r.bottom) / innerHeight));
+};
+window.heroProgress = () => {
+  const r = $("hero").getBoundingClientRect();
+  return Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+};
+</script>
+
+<script type="module">
+import * as THREE from "three";
+
+const canvas = document.getElementById("scene");
+const $ = (id) => document.getElementById(id);
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const CATS = [
+  ["Screenshots", "#5aa9ff"], ["Recordings", "#a78bfa"], ["Videos", "#7c3aed"], ["Audio", "#d946ef"], ["Images", "#0ea5e9"],
+  ["Docs", "#e5484d"], ["Code", "#22c55e"], ["Archives", "#a8a29e"], ["Other", "#94a3b8"],
+];
+const SAMPLE = {
+  Screenshots: ["Screenshot 2026-09-14 at 10.02.png", "CleanShot 2026-08-02.png"], Recordings: ["Screen Recording 2026-09-03.mov"],
+  Videos: ["launch-teaser.mp4", "demo_v3_export.mp4"], Audio: ["voice memo 12.m4a", "beat_draft.wav"], Images: ["IMG_4471.heic", "logo-final-FINAL.png"],
+  Docs: ["invoice_8812.pdf", "Q3 board deck.key", "notes"], Code: ["deploy.sh", "untitled-final"], Archives: ["Figma-arm64.dmg", "photos-export.zip"], Other: ["thing", "Untitled 3"],
+};
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+} catch { throw new Error("WebGL unavailable; CSS sky stays."); }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x02040b, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x02040b, 0.006);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+camera.position.set(0, 0, 30);
+
+/* --- Stars --- */
+const starGeo = new THREE.BufferGeometry();
+const STAR_N = 2600, sp = new Float32Array(STAR_N * 3), ss = new Float32Array(STAR_N);
+for (let i = 0; i < STAR_N; i++) {
+  const r = 160 + Math.random() * 240, th = Math.random() * Math.PI * 2, ph = Math.acos(Math.random() * 2 - 1);
+  sp.set([r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph) * 0.8 + 30, -Math.abs(r * Math.sin(ph) * Math.sin(th)) - 40], i * 3);
+  ss[i] = Math.random();
+}
+starGeo.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+starGeo.setAttribute("seed", new THREE.BufferAttribute(ss, 1));
+const starMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, uniforms: { uTime: { value: 0 }, uPx: { value: renderer.getPixelRatio() } },
+  vertexShader: `attribute float seed; uniform float uTime; uniform float uPx; varying float vA;
+    void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); gl_Position = projectionMatrix * mv;
+      vA = .35 + .65 * (.5 + .5 * sin(uTime * (0.6 + seed * 1.8) + seed * 40.));
+      gl_PointSize = (0.8 + seed * 1.9) * uPx; }`,
+  fragmentShader: `varying float vA; void main(){ float d = length(gl_PointCoord - .5); if (d > .5) discard;
+      gl_FragColor = vec4(vec3(.8,.87,1.), vA * smoothstep(.5, .0, d)); }`,
+});
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+/* --- Earth with an atmospheric rim, like the app's wallpaper --- */
+const earthGroup = new THREE.Group();
+const EARTH_R = 95;
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(EARTH_R, 96, 96),
+  new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vP;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vP = position;
+        gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vV; varying vec3 vP; uniform float uTime;
+      float h(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }
+      void main(){
+        float f = pow(1. - max(dot(vN, vV), 0.), 2.6);
+        vec3 base = mix(vec3(.01,.03,.09), vec3(.05,.13,.28), smoothstep(-20., 90., vP.y));
+        // scattered city lights
+        vec3 cell = floor(vP * 1.4); float l = step(.985, h(cell)) * (.6 + .4 * sin(uTime * 2. + h(cell + 1.) * 30.));
+        vec3 col = base + vec3(1., .82, .55) * l * .55 + vec3(.61,.78,.96) * f * 1.9;
+        gl_FragColor = vec4(col, 1.);
+      }`,
+  })
+);
+const atmo = new THREE.Mesh(
+  new THREE.SphereGeometry(EARTH_R * 1.06, 96, 96),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.);
+      vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vV; void main(){ float i = pow(max(0., .78 + dot(vN, vV)), 5.5);
+      gl_FragColor = vec4(vec3(.55,.76,1.) * i * 1.6, i); }`,
+  })
+);
+earthGroup.add(earth, atmo);
+earthGroup.position.set(8, -EARTH_R - 21, -70);
+scene.add(earthGroup);
+
+/* --- File cards (one instanced page + one instanced coloured tag) --- */
+function pageTexture() {
+  const c = document.createElement("canvas"); c.width = 128; c.height = 160;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fbfbfd";
+  g.beginPath(); g.moveTo(6, 0); g.lineTo(92, 0); g.lineTo(128, 36); g.lineTo(128, 154); g.quadraticCurveTo(128, 160, 122, 160);
+  g.lineTo(6, 160); g.quadraticCurveTo(0, 160, 0, 154); g.lineTo(0, 6); g.quadraticCurveTo(0, 0, 6, 0); g.fill();
+  g.fillStyle = "#d8dbe2"; g.beginPath(); g.moveTo(92, 0); g.lineTo(92, 36); g.lineTo(128, 36); g.fill();
+  g.fillStyle = "#c9ced8";
+  for (let y = 52; y < 104; y += 11) g.fillRect(18, y, y === 96 ? 56 : 92, 4);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+const isSmall = () => innerWidth < 760;
+const N = isSmall() ? 130 : 230;
+const pageGeo = new THREE.PlaneGeometry(1, 1.25);
+const tagGeo = new THREE.PlaneGeometry(0.62, 0.2); tagGeo.translate(0, -0.37, 0.005);
+const pages = new THREE.InstancedMesh(pageGeo, new THREE.MeshBasicMaterial({ map: pageTexture(), transparent: true, side: THREE.DoubleSide }), N);
+const tags = new THREE.InstancedMesh(tagGeo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), N);
+scene.add(pages, tags);
+
+/* --- Folders --- */
+function folderShape(w, h, r, tabW, tabH) {
+  const s = new THREE.Shape();
+  s.moveTo(-w / 2 + r, -h / 2); s.lineTo(w / 2 - r, -h / 2); s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+  s.lineTo(w / 2, h / 2 - r); s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+  if (tabW) { s.lineTo(-w / 2 + tabW + tabH * .6, h / 2); s.lineTo(-w / 2 + tabW, h / 2 + tabH); s.lineTo(-w / 2 + r, h / 2 + tabH); s.quadraticCurveTo(-w / 2, h / 2 + tabH, -w / 2, h / 2 + tabH - r); }
+  else { s.lineTo(-w / 2 + r, h / 2); s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r); }
+  s.lineTo(-w / 2, -h / 2 + r); s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+  return s;
+}
+function labelTexture(text) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 64;
+  const g = c.getContext("2d");
+  g.font = "600 30px Inter, -apple-system, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.shadowColor = "rgba(0,0,0,.9)"; g.shadowBlur = 8; g.fillStyle = "#ffffff"; g.fillText(text, 128, 32);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const backGeo = new THREE.ShapeGeometry(folderShape(2.6, 1.9, .18, .95, .32));
+const frontGeo = new THREE.ShapeGeometry(folderShape(2.6, 1.6, .18)); frontGeo.translate(0, -.15, .12);
+const folders = CATS.map(([name, hex]) => {
+  const g = new THREE.Group();
+  const col = new THREE.Color(hex);
+  const back = new THREE.Mesh(backGeo, new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(.62) }));
+  const front = new THREE.Mesh(frontGeo, new THREE.MeshBasicMaterial({ color: col.clone().lerp(new THREE.Color("#ffffff"), .25) }));
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(1.7, 40), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.position.z = -.2;
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture(name), transparent: true, depthWrite: false }));
+  label.scale.set(3.2, .8, 1); label.position.set(0, -1.55, .2);
+  g.add(glow, back, front, label);
+  g.userData = { name, glow, pulse: 0, landed: 0 };
+  scene.add(g);
+  return g;
+});
+
+/* --- Layout: where the folders sit for this viewport --- */
+let viewH = 0, viewW = 0;
+function layout() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  viewH = 2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  viewW = viewH * camera.aspect;
+  const narrow = camera.aspect < 1.05;
+  folders.forEach((f, i) => {
+    let x, y, s;
+    if (narrow) { // 3 × 3 grid in the lower half on phones
+      const col = i % 3, row = Math.floor(i / 3);
+      s = Math.min(.68, viewW / 18);
+      x = (col - 1) * 3.4 * s; y = -viewH * .5 + 3.6 + (2 - row) * 3.3 * s;
+    } else {
+      s = Math.min(1.05, viewW / 34);
+      const span = Math.min(viewW * .86, 36);
+      x = -span / 2 + (span / 8) * i; y = -viewH * .5 + 6 + Math.sin((i / 8) * Math.PI) * .8;
+    }
+    f.position.set(x, y, 2); f.scale.setScalar(s); f.userData.base = s;
+  });
+}
+
+/* --- Per-card state --- */
+const cards = [];
+const rnd = (a, b) => a + Math.random() * (b - a);
+for (let i = 0; i < N; i++) {
+  const cat = Math.floor(Math.random() * CATS.length);
+  cards.push({
+    cat, delay: (i / N) * .62 + rnd(-.04, .04), speed: rnd(.25, .8), phase: rnd(0, 100),
+    chaos: new THREE.Vector3(), rot: new THREE.Euler(rnd(-.7, .7), rnd(-.9, .9), rnd(-.5, .5)), spin: rnd(-.4, .4),
+    scale: rnd(.85, 1.35), landed: false,
+  });
+  tags.setColorAt(i, new THREE.Color(CATS[cat][1]));
+  pages.setColorAt(i, new THREE.Color("#ffffff").lerp(new THREE.Color(CATS[cat][1]), .12));
+}
+function scatter() {
+  const narrow = camera.aspect < 1.05;
+  for (const c of cards) {
+    c.chaos.set(
+      rnd(-viewW * .55, viewW * .55),
+      rnd(narrow ? -viewH * .05 : -viewH * .18, viewH * .52),
+      rnd(-14, 7)
+    );
+    const behindCopy = narrow
+      ? c.chaos.y > -viewH * .05 && c.chaos.y < viewH * .4
+      : c.chaos.x > -viewW * .26 && c.chaos.x < viewW * .2 && c.chaos.y > -viewH * .25 && c.chaos.y < viewH * .36;
+    if (behindCopy && Math.random() < .8) c.chaos.z = rnd(-60, -30);
+  }
+}
+$("totalN").textContent = N;
+
+/* --- Animation --- */
+const m = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(), target = new THREE.Vector3();
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+let p = 0, sorted = 0, lastLog = "", mouseX = 0, mouseY = 0;
+addEventListener("pointermove", (e) => { mouseX = e.clientX / innerWidth - .5; mouseY = e.clientY / innerHeight - .5; }, { passive: true });
+
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  p += (window.heroProgress() - p) * (reduceMotion ? 1 : Math.min(1, dt * 6));
+
+  starMat.uniforms.uTime.value = t; earth.material.uniforms.uTime.value = t;
+  stars.rotation.y = t * .004;
+  earthGroup.rotation.y = t * .01;
+
+  const ex = window.heroExit(), lift = ex * ex * (3 - 2 * ex) * 38;
+  if (reduceMotion) {
+    camera.position.y = lift;
+  } else {
+    camera.position.x += (mouseX * 2.2 - camera.position.x) * .04;
+    camera.position.y += (-mouseY * 1.4 + lift - camera.position.y) * .08;
+  }
+  camera.lookAt(0, camera.position.y * 1.25, 0);
+
+  let count = 0;
+  cards.forEach((c, i) => {
+    const local = Math.min(1, Math.max(0, (p - c.delay) / .3));
+    const e = ease(local);
+    const drift = reduceMotion ? 0 : 1;
+    // Floating, slightly tumbling mess…
+    v.copy(c.chaos);
+    v.x += Math.sin(t * c.speed + c.phase) * .5 * drift;
+    v.y += Math.cos(t * c.speed * .8 + c.phase) * .6 * drift;
+    // …that arcs into its folder.
+    const f = folders[c.cat];
+    target.set(f.position.x, f.position.y + .1 * f.userData.base, f.position.z + .05);
+    v.lerp(target, e);
+    v.y += Math.sin(e * Math.PI) * 3.2;
+    v.z += Math.sin(e * Math.PI) * 4;
+    const k = 1 - e;
+    q.setFromEuler(new THREE.Euler(c.rot.x * k, (c.rot.y + t * c.spin * drift) * k, c.rot.z * k));
+    const s = c.scale * (1 - e * e * .82) * (local >= 1 ? 0 : 1) * (camera.aspect < 1.05 ? .65 : 1);
+    sc.set(s, s, s);
+    m.compose(v, q, sc);
+    pages.setMatrixAt(i, m); tags.setMatrixAt(i, m);
+    if (local >= 1) {
+      count++;
+      if (!c.landed) {
+        c.landed = true; f.userData.pulse = 1;
+        const names = SAMPLE[CATS[c.cat][0]];
+        lastLog = `${names[i % names.length]} → <span class="c-ok">${CATS[c.cat][0].toLowerCase()}</span> · ${i % 3 ? '<span class="c-rule">rule</span>' : (88 + (i % 12)) + "%"}`;
+      }
+    } else c.landed = false;
+  });
+  pages.instanceMatrix.needsUpdate = true; tags.instanceMatrix.needsUpdate = true;
+
+  folders.forEach((f) => {
+    const u = f.userData;
+    u.pulse = Math.max(0, u.pulse - dt * 3);
+    f.scale.setScalar(u.base * (1 + u.pulse * .12));
+    u.glow.material.opacity = .04 + u.pulse * .35 + p * .06;
+  });
+
+  if (count !== sorted) {
+    sorted = count;
+    $("sortedN").textContent = sorted;
+    $("logLine").innerHTML = sorted === 0
+      ? '<span class="c-mute"># a very messy Desktop. scroll to let Jev sort it ↓</span>'
+      : sorted === N ? `<span class="c-ok">✨ done</span> <span class="c-mute">— ${N} files sorted · nothing moved until you say so</span>` : lastLog;
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+layout(); scatter();
+let rt;
+addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { layout(); scatter(); }, 120); });
+canvas.classList.add("ready");
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

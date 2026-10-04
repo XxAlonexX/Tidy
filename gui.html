@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev Cleaner</title>
+<style>
+  :root {
+    --menubar-h: 30px;
+    --glass: rgba(30, 32, 38, 0.93);
+    --glass-light: rgba(40, 42, 50, 0.94);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #f2f3f5;
+    --muted: #a3a8b3;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --red: #f87171;
+    --accent: #5aa9ff;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    background: #050913;
+    user-select: none;
+  }
+
+  /* Wallpaper: night sky over the curve of the earth, like the video */
+  #wallpaper {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 140% 55% at 60% 112%, #e9f3ff 0%, #9cc8f5 14%, #3f7fc4 24%, #173c73 33%, rgba(10,24,52,0) 46%),
+      radial-gradient(ellipse 60% 40% at 70% 40%, rgba(40,70,140,.35), transparent 70%),
+      linear-gradient(180deg, #02040b 0%, #071430 55%, #0d2a5c 100%);
+  }
+  #stars { position: fixed; inset: 0; z-index: 0; }
+
+  /* Menubar */
+  #menubar {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--menubar-h); z-index: 50;
+    display: flex; align-items: center; gap: 14px; padding: 0 12px;
+    background: rgba(12, 14, 20, 0.55); backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    font-size: 13px; border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  #menubar .brand { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  #menubar .brand .dot { width: 10px; height: 10px; border-radius: 3px; background: linear-gradient(135deg, #5aa9ff, #a78bfa); }
+  #menubar .spacer { flex: 1; }
+  .chip {
+    font: inherit; color: var(--text); background: rgba(255,255,255,.08); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 9px; cursor: pointer; max-width: 360px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .chip:hover { background: rgba(255,255,255,.14); }
+  .ctl { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .ctl select, .ctl input { font: inherit; color: var(--text); background: rgba(255,255,255,.08); border: 1px solid var(--border); border-radius: 6px; padding: 1px 4px; }
+  .btn {
+    font: inherit; font-weight: 600; color: #fff; border: 0; border-radius: 6px; padding: 3px 12px; cursor: pointer;
+    background: rgba(255,255,255,.12);
+  }
+  .btn:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+  .btn.primary { background: var(--accent); color: #04101f; }
+  .btn.primary:hover:not(:disabled) { background: #7bbcff; }
+  .btn.danger { background: #ef4444; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  #clock { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* Desktop icons */
+  #desk { position: fixed; top: var(--menubar-h); left: 0; right: 0; bottom: 0; }
+  .icon {
+    position: absolute; display: flex; flex-direction: column; align-items: center;
+    will-change: transform, opacity;
+  }
+  .glyph { position: relative; display: grid; place-items: center; }
+  .glyph img {
+    max-width: 100%; max-height: 100%; border-radius: 3px; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.5); border: 2px solid #fff;
+  }
+  .page {
+    position: relative; width: 78%; height: 100%; background: #fbfbfd; border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.55);
+    clip-path: polygon(0 0, 72% 0, 100% 22%, 100% 100%, 0 100%);
+  }
+  .page::after {
+    content: ""; position: absolute; right: 0; top: 0; width: 28%; height: 22%;
+    background: linear-gradient(225deg, transparent 50%, #d8dbe2 50%);
+  }
+  .page .lines {
+    position: absolute; left: 14%; right: 14%; top: 30%; height: 30%;
+    background: repeating-linear-gradient(180deg, #c9ced8 0 2px, transparent 2px 6px);
+    opacity: .7;
+  }
+  .page .ext {
+    position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%);
+    font: 700 9px/1 var(--sans); color: #fff; padding: 2px 4px; border-radius: 3px; letter-spacing: .02em;
+    max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .label {
+    margin-top: 3px; font-size: 11px; line-height: 1.2; text-align: center; color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.6);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    word-break: break-word; width: 100%;
+  }
+  .icon.review .glyph { outline: 2px solid var(--yellow); outline-offset: 3px; border-radius: 6px; animation: wobble .5s ease 2; }
+  .icon.error .glyph { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 6px; }
+  @keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+
+  /* Windows */
+  .window {
+    position: fixed; z-index: 20; border-radius: 12px; overflow: hidden;
+    background: var(--glass); border: 1px solid var(--border);
+    backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 .5px rgba(0,0,0,.6);
+  }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+  .lights { display: flex; gap: 7px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+  .titlebar .title { font-weight: 700; font-size: 13px; }
+
+  #sorted { top: calc(var(--menubar-h) + 46px); right: 30px; width: 300px; }
+  #sorted .title { margin-left: 6px; }
+  #folders { list-style: none; margin: 0; padding: 2px 8px 10px; }
+  #folders li {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 7px; font-size: 14px;
+    transition: background .25s;
+  }
+  #folders li.pulse { background: rgba(90,169,255,.28); transition: none; }
+  #folders .ficon { width: 20px; height: 15px; position: relative; flex: none; }
+  #folders .ficon::before { content: ""; position: absolute; inset: 3px 0 0 0; background: #8fb8e8; border-radius: 2px 3px 3px 3px; }
+  #folders .ficon::after { content: ""; position: absolute; left: 0; top: 0; width: 8px; height: 5px; background: #8fb8e8; border-radius: 2px 2px 0 0; }
+  #folders .name { flex: 1; }
+  #folders .count { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
+  #folders li.empty { opacity: .55; }
+
+  #term { left: 30px; bottom: 34px; width: min(560px, calc(100vw - 60px)); height: 290px; display: flex; flex-direction: column; background: rgba(20,22,27,.95); }
+  #termbody {
+    flex: 1; overflow: hidden; padding: 4px 14px 12px; font: 12.5px/1.55 var(--mono); color: #d4d7dd;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px); mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
+  }
+  #termbody .ln { flex: none; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+  .c-mute { color: #7d8492; } .c-cmd { color: #e6e8ec; } .c-str { color: #e5c07b; }
+  .c-ok { color: var(--green); font-weight: 600; } .c-rev { color: var(--yellow); font-weight: 600; } .c-err { color: var(--red); }
+  .c-rule { color: #8ab4f8; }
+  .cursor { display: inline-block; width: 7px; height: 14px; background: #d4d7dd; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Bottom action bar */
+  #bar {
+    position: fixed; right: 30px; bottom: 34px; transform: translateY(160%); z-index: 40;
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 12px;
+    background: var(--glass-light); border: 1px solid var(--border);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.5); font-size: 13px;
+    transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
+  }
+  #bar.show { transform: translateY(0); }
+  #bar .msg { color: var(--text); }
+  #bar .msg b { font-variant-numeric: tabular-nums; }
+
+  #empty {
+    position: fixed; inset: var(--menubar-h) 0 0 0; z-index: 2; display: none; place-items: center;
+    font-size: 15px; color: var(--muted); text-shadow: 0 1px 3px #000;
+  }
+
+  @media (max-width: 900px) {
+    #sorted { width: 240px; right: 16px; }
+    #term { left: 16px; height: 220px; }
+    .ctl.opt { display: none; }
+    #bar { left: 16px; right: 16px; bottom: 16px; flex-wrap: wrap; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .icon.review .glyph { animation: none; }
+    #bar { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div id="wallpaper"></div>
+<canvas id="stars"></canvas>
+
+<header id="menubar">
+  <span class="brand"><span class="dot"></span>Jev Cleaner</span>
+  <button class="chip" id="folderChip" title="Choose a folder">~/Desktop</button>
+  <span class="spacer"></span>
+  <label class="ctl opt">Min confidence
+    <select id="threshold">
+      <option value="0.5" selected>50%</option>
+      <option value="0.7">70%</option>
+      <option value="0.9">90%</option>
+    </select>
+  </label>
+  <label class="ctl opt"><input type="checkbox" id="allJev"> Ask Jev for every file</label>
+  <button class="btn" id="scanBtn">Rescan</button>
+  <button class="btn primary" id="cleanBtn" disabled>Clean with Jev</button>
+  <span id="clock"></span>
+</header>
+
+<main id="desk" aria-label="Files on the desktop"></main>
+<div id="empty">Nothing to clean here ✨</div>
+
+<section class="window" id="sorted" aria-label="Sorted folders">
+  <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span><span class="title" id="sortedTitle">Sorted — 0 files</span></div>
+  <ul id="folders"></ul>
+</section>
+
+<section class="window" id="term" aria-label="Jev log">
+  <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span></div>
+  <div id="termbody" role="log" aria-live="off"></div>
+</section>
+
+<div id="bar" role="status">
+  <span class="msg" id="barMsg"></span>
+  <button class="btn" id="replayBtn">Replay</button>
+  <button class="btn primary" id="moveBtn">Move files</button>
+  <button class="btn" id="undoBtn" hidden>Undo</button>
+</div>
+
+<script>
+const TOKEN = "__TOKEN__";
+const START_FOLDER = "__FOLDER__";
+const api = (path, params = {}) => `/api/${path}?` + new URLSearchParams({ token: TOKEN, ...params });
+const $ = (id) => document.getElementById(id);
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const EXT_COLOR = {
+  pdf: "#e5484d", doc: "#2f6fde", docx: "#2f6fde", pages: "#f59e0b", txt: "#6b7280", md: "#6b7280", rtf: "#6b7280",
+  ppt: "#e2611f", pptx: "#e2611f", key: "#2f80ed", xls: "#1f9d55", xlsx: "#1f9d55", csv: "#1f9d55", numbers: "#1f9d55",
+  mp3: "#d946ef", wav: "#d946ef", m4a: "#d946ef", aac: "#d946ef", flac: "#d946ef",
+  mp4: "#7c3aed", mov: "#7c3aed", m4v: "#7c3aed", mkv: "#7c3aed", webm: "#7c3aed", avi: "#7c3aed",
+  zip: "#78716c", dmg: "#78716c", pkg: "#78716c", gz: "#78716c", tar: "#78716c", rar: "#78716c",
+  png: "#0ea5e9", jpg: "#0ea5e9", jpeg: "#0ea5e9", heic: "#0ea5e9", gif: "#0ea5e9", svg: "#0ea5e9",
+};
+const CODE_EXTS = new Set("py js ts tsx jsx sh zsh rb go rs java kt swift c cc cpp h hpp cs php sql ipynb yaml yml toml json html css scss xml".split(" "));
+
+let state = {
+  root: null, files: [], categories: [], results: new Map(),
+  counts: {}, phase: "idle", // idle | scanned | running | finished | moved
+};
+
+/* ---------- Stars + clock ---------- */
+function drawStars() {
+  const c = $("stars"), dpr = devicePixelRatio || 1;
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  c.style.width = innerWidth + "px"; c.style.height = innerHeight + "px";
+  const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 260; i++) {
+    const x = rnd() * innerWidth, y = rnd() * innerHeight * 0.72, r = rnd() * 1.2 + 0.2;
+    ctx.fillStyle = `rgba(200,220,255,${0.35 + rnd() * 0.6})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function tickClock() {
+  $("clock").textContent = new Date().toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/* ---------- Terminal ---------- */
+const MAX_LINES = 60;
+function termLine(html) {
+  const body = $("termbody");
+  body.querySelector(".cursor")?.remove();
+  const div = document.createElement("div");
+  div.className = "ln"; div.innerHTML = html;
+  body.appendChild(div);
+  while (body.children.length > MAX_LINES) body.firstChild.remove();
+  return div;
+}
+function termCursor() {
+  const body = $("termbody");
+  body.querySelector(".cursor")?.remove();
+  const last = body.lastElementChild || termLine("");
+  last.insertAdjacentHTML("beforeend", ' <span class="cursor"></span>');
+}
+const esc = (s) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+function shortName(name, width = 26) {
+  return name.length <= width ? name.padEnd(width) : name.slice(0, width - 3) + "...";
+}
+function termHeader() {
+  $("termbody").innerHTML = "";
+  const opts = state.categories.map((c) => `"${c.toLowerCase()}"`).join(",");
+  termLine(`<span class="c-mute"># jev cleaner — powered by Jev (TypeSafe System One)</span>`);
+  termLine(`<span class="c-cmd">$ curl $JEV/systemone -d '{"state": &lt;file&gt;, "type": "choice",</span>`);
+  termLine(`<span class="c-str">    "options": [${esc(opts)}]}'</span> <span class="c-mute"># × ${state.files.length}</span>`);
+}
+function termResult(file, r) {
+  const name = esc(shortName(file.name));
+  if (r.status === "error") return termLine(`${name} <span class="c-err">✗ ${esc(r.error || "failed")}</span>`);
+  const cat = r.category.toLowerCase();
+  const tag = r.source === "rule" ? `<span class="c-rule">rule</span>` : `${Math.round(r.confidence * 100)}%`;
+  if (r.status === "review") return termLine(`${name} <span class="c-rev">? ${cat}</span> · ${tag} <span class="c-mute">(left in place)</span>`);
+  termLine(`${name} → <span class="c-ok">${cat}</span> · ${tag}`);
+}
+
+/* ---------- Sorted panel ---------- */
+function renderFolders() {
+  const ul = $("folders"); ul.innerHTML = "";
+  for (const c of state.categories) {
+    state.counts[c] = 0;
+    const li = document.createElement("li");
+    li.dataset.cat = c; li.className = "empty";
+    li.innerHTML = `<span class="ficon"></span><span class="name">${c}</span><span class="count">0</span>`;
+    ul.appendChild(li);
+  }
+  $("sortedTitle").textContent = `Sorted — ${state.files.length} files`;
+}
+function bump(cat) {
+  const li = $("folders").querySelector(`li[data-cat="${cat}"]`);
+  if (!li) return;
+  state.counts[cat]++;
+  li.querySelector(".count").textContent = state.counts[cat];
+  li.classList.remove("empty");
+  li.classList.add("pulse");
+  requestAnimationFrame(() => requestAnimationFrame(() => li.classList.remove("pulse")));
+}
+
+/* ---------- Desktop icons ---------- */
+function layoutDesk() {
+  const desk = $("desk"); desk.innerHTML = "";
+  const W = desk.clientWidth, H = desk.clientHeight, n = state.files.length;
+  $("empty").style.display = n ? "none" : "grid";
+  if (!n) return;
+  const cell = Math.max(46, Math.min(96, Math.floor(Math.sqrt((W * H) / n) * 0.95)));
+  const rowsPerCol = Math.max(1, Math.floor((H - 8) / (cell * 1.12)));
+  const cols = Math.ceil(n / rowsPerCol);
+  const colW = Math.min(cell, (W - 16) / cols);
+  const rowH = (H - 8) / rowsPerCol;
+  const crowded = colW < cell * 0.98;
+  const glyph = Math.round(cell * 0.58);
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  state.files.forEach((f, i) => {
+    const col = Math.floor(i / rowsPerCol), row = i % rowsPerCol;
+    const jitter = crowded ? (rnd() - 0.5) * colW * 0.5 : 0;
+    const x = W - 8 - (col + 1) * colW + (colW - cell) / 2 + jitter;
+    const y = 6 + row * rowH + (crowded ? (rnd() - 0.5) * 8 : 0);
+    const el = document.createElement("div");
+    el.className = "icon"; el.dataset.id = f.id;
+    el.style.cssText = `left:${x}px;top:${y}px;width:${cell}px;z-index:${1 + (i % 15)}`;
+    el.title = f.name;
+    el.innerHTML = `<div class="glyph" style="width:${glyph}px;height:${glyph}px">${glyphHTML(f)}</div><div class="label">${esc(f.name)}</div>`;
+    const img = el.querySelector("img");
+    if (img) img.onerror = () => { img.parentElement.innerHTML = pageHTML(f); };
+    desk.appendChild(el);
+  });
+}
+function pageHTML(f) {
+  const color = EXT_COLOR[f.ext] || (CODE_EXTS.has(f.ext) ? "#334155" : "#64748b");
+  const label = f.ext ? f.ext.toUpperCase() : "FILE";
+  return `<div class="page"><div class="lines"></div><span class="ext" style="background:${color}">${esc(label)}</span></div>`;
+}
+function glyphHTML(f) {
+  return f.thumb ? `<img loading="lazy" alt="" src="${api("thumb", { id: f.id })}">` : pageHTML(f);
+}
+
+/* ---------- Animation queue ---------- */
+let queue = [], rate = 20, acc = 0, lastT = 0, streamDone = false, inFlight = 0, rafId = 0;
+
+function startPump() {
+  rate = Math.max(14, state.files.length / 6.5); // ~6–7s for a big desktop, like the video
+  acc = 0; lastT = performance.now(); cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(pump);
+}
+function pump(t) {
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  acc += rate * dt;
+  while (acc >= 1 && queue.length) {
+    acc -= 1;
+    const r = queue.splice(Math.floor(Math.random() * Math.min(queue.length, 24)), 1)[0];
+    launch(r);
+  }
+  if (!queue.length) acc = Math.min(acc, 1);
+  if (streamDone && !queue.length && inFlight === 0) return finish();
+  rafId = requestAnimationFrame(pump);
+}
+function launch(r) {
+  const file = state.byId.get(r.id);
+  termResult(file, r);
+  const el = $("desk").querySelector(`.icon[data-id="${r.id}"]`);
+  if (!el) return;
+  if (r.status !== "ok") { el.classList.add(r.status); return; }
+  const li = $("folders").querySelector(`li[data-cat="${r.category}"]`);
+  const from = el.getBoundingClientRect(), to = li.querySelector(".ficon").getBoundingClientRect();
+  const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+  const dy = to.top + to.height / 2 - (from.top + from.height / 3);
+  el.style.zIndex = 30;
+  inFlight++;
+  const anim = el.animate(
+    reduceMotion
+      ? [{ opacity: 1 }, { opacity: 0 }]
+      : [
+          { transform: "translate(0,0) scale(1)", opacity: 1, offset: 0 },
+          { transform: `translate(${dx * 0.08}px, ${dy * 0.08 - 18}px) scale(1.08)`, opacity: 1, offset: 0.2 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.18)`, opacity: 0.15, offset: 1 },
+        ],
+    { duration: reduceMotion ? 200 : 620 + Math.random() * 260, easing: "cubic-bezier(.55,0,.7,.4)", fill: "forwards" }
+  );
+  anim.onfinish = () => { el.remove(); bump(r.category); inFlight--; };
+}
+
+/* ---------- Flow ---------- */
+function setBar(html, { move = false, replay = false, undo = false } = {}) {
+  $("barMsg").innerHTML = html;
+  $("moveBtn").hidden = !move; $("replayBtn").hidden = !replay; $("undoBtn").hidden = !undo;
+  $("bar").classList.toggle("show", !!html);
+}
+function setPhase(p) {
+  state.phase = p;
+  $("cleanBtn").disabled = !(p === "scanned" && state.files.length);
+  $("scanBtn").disabled = p === "running";
+  $("folderChip").disabled = p === "running";
+}
+
+async function scan(folder) {
+  setBar("");
+  const res = await fetch(api("scan", { folder }));
+  const data = await res.json();
+  if (!res.ok) { termLine(`<span class="c-err">${esc(data.error)}</span>`); termCursor(); return; }
+  state.root = data.root; state.files = data.files; state.categories = data.categories;
+  state.byId = new Map(data.files.map((f) => [f.id, f]));
+  state.results = new Map();
+  $("folderChip").textContent = data.root.replace(/^\/Users\/[^/]+/, "~");
+  renderFolders(); layoutDesk(); termHeader();
+  termLine(`<span class="c-mute"># ${data.files.length} files found. Press “Clean with Jev”.</span>`); termCursor();
+  setPhase("scanned");
+}
+
+function clean() {
+  setPhase("running"); termHeader();
+  queue = []; streamDone = false; inFlight = 0;
+  startPump();
+  const es = new EventSource(api("classify", { threshold: $("threshold").value, all_jev: $("allJev").checked ? "1" : "0" }));
+  es.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === "fatal") { termLine(`<span class="c-err">${esc(ev.error)}</span>`); es.close(); streamDone = true; return; }
+    if (ev.type === "start") { if (ev.jev) termLine(`<span class="c-mute"># ${ev.rules} by rule · asking Jev about ${ev.jev}</span>`); return; }
+    if (ev.type === "done") { es.close(); streamDone = true; return; }
+    state.results.set(ev.id, ev); queue.push(ev);
+  };
+  es.onerror = () => { es.close(); if (!streamDone) termLine(`<span class="c-err">Connection to Jev Cleaner lost.</span>`); streamDone = true; };
+}
+
+function finish() {
+  const all = [...state.results.values()];
+  const ok = all.filter((r) => r.status === "ok").length;
+  const review = all.filter((r) => r.status === "review").length;
+  const errors = all.filter((r) => r.status === "error").length;
+  termLine(`<span class="c-mute"># done — ${ok} sorted · ${review} to review · ${errors} errors</span>`); termCursor();
+  setPhase("finished");
+  const extra = [review && `${review} left for review`, errors && `${errors} failed`].filter(Boolean).join(" · ");
+  setBar(`Preview: <b>${ok}</b> files sorted${extra ? " · " + extra : ""}. Nothing moved yet.`, { move: ok > 0, replay: true });
+}
+
+function replay() {
+  if (state.phase === "running") return;
+  renderFolders(); layoutDesk(); termHeader(); setBar("");
+  setPhase("running");
+  queue = [...state.results.values()]; streamDone = true; inFlight = 0;
+  startPump();
+}
+
+async function moveFiles() {
+  const ok = [...state.results.values()].filter((r) => r.status === "ok").length;
+  if (!confirm(`Move ${ok} files into category folders inside ${state.root}?\n\nYou can undo this afterwards.`)) return;
+  $("moveBtn").disabled = true;
+  const res = await fetch(api("move"), { method: "POST" });
+  const data = await res.json();
+  $("moveBtn").disabled = false;
+  if (!res.ok) { setBar(`<span class="c-err">${esc(data.error)}</span>`, { replay: true }); return; }
+  termLine(`<span class="c-ok">✨ moved ${data.moved} files</span>`); termCursor();
+  setPhase("moved");
+  setBar(`Moved <b>${data.moved}</b> files into ${state.categories.length} folders.`, { undo: true });
+}
+
+async function undoMove() {
+  $("undoBtn").disabled = true;
+  const res = await fetch(api("undo"), { method: "POST" });
+  const data = await res.json();
+  $("undoBtn").disabled = false;
+  if (!res.ok) { setBar(`<span class="c-err">${esc(data.error)}</span>`); return; }
+  await scan(state.root);
+  termLine(`<span class="c-mute"># restored the files to their original places</span>`); termCursor();
+}
+
+async function pickFolder() {
+  const res = await fetch(api("pick"));
+  const { folder } = await res.json();
+  if (folder) scan(folder);
+}
+
+$("scanBtn").onclick = () => scan(state.root || START_FOLDER);
+$("cleanBtn").onclick = clean;
+$("replayBtn").onclick = replay;
+$("moveBtn").onclick = moveFiles;
+$("undoBtn").onclick = undoMove;
+$("folderChip").onclick = pickFolder;
+let resizeT;
+addEventListener("resize", () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { drawStars(); if (state.phase === "scanned") layoutDesk(); }, 150);
+});
+
+drawStars(); tickClock(); setInterval(tickClock, 15000);
+scan(START_FOLDER);
+</script>
+</body>
+</html>

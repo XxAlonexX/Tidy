@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev Cleaner</title>
+<style>
+  :root {
+    --menubar-h: 30px;
+    --glass: rgba(30, 32, 38, 0.93);
+    --glass-light: rgba(40, 42, 50, 0.94);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #f2f3f5;
+    --muted: #a3a8b3;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --red: #f87171;
+    --accent: #5aa9ff;
+    --accent-soft: rgba(90, 169, 255, .28);
+    --accent-ring: rgba(90, 169, 255, .25);
+    --term-bg: rgba(20, 22, 27, .95);
+    --dim: 0;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    background: #050913;
+    user-select: none;
+  }
+
+  /* Wallpapers. Each preset class paints both the desktop and its thumbnail in Settings. */
+  #wallpaper { position: fixed; inset: 0; z-index: 0; transition: background .4s; }
+  #wallpaper::after { content: ""; position: absolute; inset: 0; background: #000; opacity: var(--dim); pointer-events: none; }
+  #wallpaper.photo, .thumb.photo { background: #050913 center / cover no-repeat; }
+  .wp-night { /* night sky over the curve of the earth, like the video */
+    background:
+      radial-gradient(ellipse 140% 55% at 60% 112%, #e9f3ff 0%, #9cc8f5 14%, #3f7fc4 24%, #173c73 33%, rgba(10,24,52,0) 46%),
+      radial-gradient(ellipse 60% 40% at 70% 40%, rgba(40,70,140,.35), transparent 70%),
+      linear-gradient(180deg, #02040b 0%, #071430 55%, #0d2a5c 100%);
+  }
+  .wp-aurora {
+    background:
+      radial-gradient(ellipse 70% 38% at 28% 30%, rgba(52,211,153,.55), transparent 70%),
+      radial-gradient(ellipse 55% 30% at 68% 20%, rgba(45,212,191,.42), transparent 70%),
+      radial-gradient(ellipse 45% 28% at 52% 42%, rgba(167,139,250,.38), transparent 70%),
+      radial-gradient(ellipse 120% 30% at 50% 108%, #0b1d26 0 60%, transparent 61%),
+      linear-gradient(180deg, #020611 0%, #04121c 55%, #0a1f2a 100%);
+  }
+  .wp-dusk {
+    background:
+      radial-gradient(circle at 50% 80%, #ffe2b0 0, #ff9a6b 7%, rgba(255,120,110,0) 28%),
+      radial-gradient(ellipse 110% 30% at 50% 112%, #2a1340 0 60%, transparent 61%),
+      linear-gradient(180deg, #120c2c 0%, #3b1d5e 35%, #a23b72 62%, #f2785c 82%, #ffc48a 100%);
+  }
+  .wp-ocean {
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(125,211,252,.4), transparent 60%),
+      radial-gradient(ellipse 50% 25% at 25% 70%, rgba(56,189,248,.18), transparent 70%),
+      linear-gradient(180deg, #0b3a5c 0%, #072a45 45%, #031726 100%);
+  }
+  .wp-dunes {
+    background:
+      radial-gradient(ellipse 80% 38% at 18% 104%, #9a3412 0 60%, transparent 61%),
+      radial-gradient(ellipse 85% 44% at 86% 104%, #c2410c 0 60%, transparent 61%),
+      radial-gradient(ellipse 130% 56% at 50% 112%, #ea7a2a 0 60%, transparent 61%),
+      radial-gradient(circle at 72% 30%, rgba(255,250,235,.9) 0, rgba(255,240,200,0) 9%),
+      linear-gradient(180deg, #7dd3fc 0%, #fde68a 55%, #fdba74 100%);
+  }
+  .wp-graphite {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, #3a3d45, transparent 70%),
+      linear-gradient(180deg, #25272d, #121316);
+  }
+  #stars { position: fixed; inset: 0; z-index: 0; }
+
+  /* Menubar */
+  #menubar {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--menubar-h); z-index: 50;
+    display: flex; align-items: center; gap: 14px; padding: 0 12px;
+    background: rgba(12, 14, 20, 0.55); backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    font-size: 13px; border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  #menubar .brand { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  #menubar .brand .dot { width: 10px; height: 10px; border-radius: 3px; background: linear-gradient(135deg, #5aa9ff, #a78bfa); }
+  #menubar .spacer { flex: 1; }
+  .chip {
+    font: inherit; color: var(--text); background: rgba(255,255,255,.08); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 9px; cursor: pointer; max-width: 360px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .chip:hover { background: rgba(255,255,255,.14); }
+  .ctl { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .ctl select, .ctl input { font: inherit; color: var(--text); background: rgba(255,255,255,.08); border: 1px solid var(--border); border-radius: 6px; padding: 1px 4px; }
+  .btn {
+    font: inherit; font-weight: 600; color: #fff; border: 0; border-radius: 6px; padding: 3px 12px; cursor: pointer;
+    background: rgba(255,255,255,.12);
+  }
+  .btn:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+  .btn.primary { background: var(--accent); color: #04101f; }
+  .btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.12); }
+  .btn.danger { background: #ef4444; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  #clock { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* Desktop icons */
+  #desk { position: fixed; top: var(--menubar-h); left: 0; right: 0; bottom: 0; }
+  .icon {
+    position: absolute; display: flex; flex-direction: column; align-items: center;
+    will-change: transform, opacity;
+  }
+  .glyph { position: relative; display: grid; place-items: center; }
+  .glyph img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 1px 2px rgba(0,0,0,.55)); }
+  .page {
+    position: relative; width: 78%; height: 100%; background: #fbfbfd; border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.55);
+    clip-path: polygon(0 0, 72% 0, 100% 22%, 100% 100%, 0 100%);
+  }
+  .page::after {
+    content: ""; position: absolute; right: 0; top: 0; width: 28%; height: 22%;
+    background: linear-gradient(225deg, transparent 50%, #d8dbe2 50%);
+  }
+  .page .lines {
+    position: absolute; left: 14%; right: 14%; top: 30%; height: 30%;
+    background: repeating-linear-gradient(180deg, #c9ced8 0 2px, transparent 2px 6px);
+    opacity: .7;
+  }
+  .page .ext {
+    position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%);
+    font: 700 9px/1 var(--sans); color: #fff; padding: 2px 4px; border-radius: 3px; letter-spacing: .02em;
+    max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .label {
+    margin-top: 3px; font-size: 11px; line-height: 1.2; text-align: center; color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.6);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    word-break: break-word; width: 100%;
+  }
+  .icon.review .glyph { outline: 2px solid var(--yellow); outline-offset: 3px; border-radius: 6px; animation: wobble .5s ease 2; }
+  .icon.nokey .glyph { outline: 2px dashed rgba(255,255,255,.45); outline-offset: 3px; border-radius: 6px; }
+  .icon.error .glyph { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 6px; }
+  @keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+
+  /* Windows */
+  .window {
+    position: fixed; z-index: 20; border-radius: 12px; overflow: hidden;
+    background: var(--glass); border: 1px solid var(--border);
+    backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 .5px rgba(0,0,0,.6);
+  }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+  .lights { display: flex; gap: 7px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+  .titlebar .title { font-weight: 700; font-size: 13px; }
+
+  #sorted { top: calc(var(--menubar-h) + 46px); right: 30px; width: 300px; }
+  #sorted .title { margin-left: 6px; }
+  #folders { list-style: none; margin: 0; padding: 2px 8px 10px; }
+  #folders li {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 7px; font-size: 14px;
+    transition: background .25s;
+  }
+  #folders li.pulse { background: var(--accent-soft); transition: none; }
+  #folders .ficon { width: 20px; height: 15px; position: relative; flex: none; }
+  #folders .ficon::before { content: ""; position: absolute; inset: 3px 0 0 0; background: #8fb8e8; border-radius: 2px 3px 3px 3px; }
+  #folders .ficon::after { content: ""; position: absolute; left: 0; top: 0; width: 8px; height: 5px; background: #8fb8e8; border-radius: 2px 2px 0 0; }
+  #folders .name { flex: 1; }
+  #folders .count { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
+  #folders li.empty { opacity: .55; }
+
+  #term { left: 30px; bottom: 34px; width: min(560px, calc(100vw - 60px)); height: 290px; display: flex; flex-direction: column; background: var(--term-bg); }
+  #termbody {
+    flex: 1; overflow: hidden; padding: 4px 14px 12px; font: 12.5px/1.55 var(--mono); color: #d4d7dd;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px); mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
+  }
+  #termbody .ln { flex: none; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+  .c-key { color: #cbd5e1; }
+  .c-mute { color: #7d8492; } .c-cmd { color: #e6e8ec; } .c-str { color: #e5c07b; }
+  .c-ok { color: var(--green); font-weight: 600; } .c-rev { color: var(--yellow); font-weight: 600; } .c-err { color: var(--red); }
+  .c-rule { color: #8ab4f8; }
+  .cursor { display: inline-block; width: 7px; height: 14px; background: #d4d7dd; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Bottom action bar */
+  #bar {
+    position: fixed; right: 30px; bottom: 34px; transform: translateY(160%); z-index: 40;
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 12px;
+    background: var(--glass-light); border: 1px solid var(--border);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.5); font-size: 13px;
+    transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
+  }
+  #bar.show { transform: translateY(0); }
+  #bar .msg { color: var(--text); }
+  #bar .msg b { font-variant-numeric: tabular-nums; }
+
+  #empty {
+    position: fixed; inset: var(--menubar-h) 0 0 0; z-index: 2; display: none; place-items: center;
+    font-size: 15px; color: var(--muted); text-shadow: 0 1px 3px #000;
+  }
+
+  @media (max-width: 900px) {
+    #sorted { width: 240px; right: 16px; }
+    #term { left: 16px; height: 220px; }
+    .ctl.opt { display: none; }
+    #bar { left: 16px; right: 16px; bottom: 16px; flex-wrap: wrap; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .icon.review .glyph { animation: none; }
+    #bar { transition: none; }
+  }
+
+  .btn.support { background: rgba(244,114,182,.18); color: #f9a8d4; }
+  .btn.support:hover:not(:disabled) { background: rgba(244,114,182,.3); }
+  .btn.support.done { background: transparent; color: #f9a8d4; cursor: default; }
+  .icon-btn { padding: 3px 9px; font-size: 14px; }
+
+  /* Modals */
+  .modal {
+    position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px;
+    background: rgba(3, 6, 14, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    animation: fade .18s ease;
+  }
+  .modal[hidden] { display: none; }
+  @keyframes fade { from { opacity: 0; } }
+  .card {
+    width: min(480px, 100%); max-height: calc(100vh - 32px); overflow: auto;
+    background: #1b1d23; border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6); user-select: text; animation: pop .22s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes pop { from { transform: scale(.94); opacity: 0; } }
+  .card h2 { margin: 0 0 6px; font-size: 19px; }
+  .card h3 { margin: 18px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .card p { margin: 6px 0; line-height: 1.5; font-size: 13.5px; }
+  .card .lead { color: #d6d9df; }
+  .card .hint { color: var(--muted); font-size: 12.5px; }
+  .card .hint.ok { color: var(--green); } .card .hint.err { color: var(--red); }
+  .card a, .card .link { color: var(--accent); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: none; }
+  .card a:hover, .card .link:hover { text-decoration: underline; }
+  .row { display: flex; gap: 8px; }
+  .row input {
+    flex: 1; min-width: 0; font: 13px var(--mono); color: var(--text); background: #0f1115; border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; outline: none;
+  }
+  .row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+  .row .btn { padding: 6px 14px; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .nag { text-align: center; width: min(420px, 100%); }
+  .nag .heart { font-size: 40px; color: #f472b6; line-height: 1; margin: 4px 0 10px; animation: beat 1.4s ease infinite; }
+  @keyframes beat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(1); } }
+  .nag .actions { flex-direction: column; align-items: stretch; margin-top: 18px; }
+  .btn.big { padding: 10px 14px; font-size: 15px; }
+  .nag #nagKeyRow { margin-top: 14px; text-align: left; }
+  .nag #nagLater { margin-top: 14px; color: var(--muted); font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { .nag .heart, .card, .modal { animation: none; } }
+
+  /* Settings tabs */
+  .card.settings { width: min(560px, 100%); padding-top: 18px; }
+  .card.settings h2 { text-align: center; margin-bottom: 12px; }
+  .tabs { display: flex; gap: 2px; padding: 3px; margin: 0 auto 8px; width: max-content; border-radius: 9px; background: rgba(255,255,255,.06); }
+  .tabs button {
+    font: 600 13px var(--sans); color: var(--muted); background: none; border: 0; border-radius: 7px; padding: 5px 16px; cursor: pointer;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button[aria-selected="true"] { color: var(--text); background: rgba(255,255,255,.14); box-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .tabpane[hidden] { display: none; }
+
+  /* Appearance */
+  .walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+  .wall { font: inherit; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; text-align: center; font-size: 11.5px; }
+  .wall .thumb {
+    position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; border-radius: 8px; margin-bottom: 5px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.14); transition: box-shadow .15s, transform .15s; overflow: hidden;
+    color: var(--text); font-size: 20px;
+  }
+  .wall:hover .thumb { transform: translateY(-1px); }
+  .wall[aria-pressed="true"] { color: var(--text); }
+  .wall[aria-pressed="true"] .thumb { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-ring); }
+  .wall .thumb.add { background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.22); outline: 1px dashed transparent; }
+  .wall .thumb .stars { position: absolute; inset: 0; background-image:
+      radial-gradient(1px 1px at 20% 20%, #fff, transparent), radial-gradient(1px 1px at 60% 12%, #fff, transparent),
+      radial-gradient(1px 1px at 80% 34%, #fff, transparent), radial-gradient(1px 1px at 38% 40%, #cfe, transparent); opacity: .8; }
+  .setting { display: flex; align-items: center; gap: 14px; margin: 14px 0; font-size: 13.5px; }
+  .setting > span:first-child { width: 120px; flex: none; color: #d6d9df; }
+  .setting input[type=range] { flex: 1; accent-color: var(--accent); }
+  .setting output { width: 4ch; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+  .accents { display: flex; gap: 10px; }
+  .accents button {
+    width: 22px; height: 22px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+  }
+  .accents button[aria-pressed="true"] { box-shadow: 0 0 0 2px #1b1d23, 0 0 0 4px currentColor; }
+  .seg { display: inline-flex; border-radius: 8px; background: rgba(255,255,255,.06); padding: 2px; }
+  .seg button { font: 600 12.5px var(--sans); color: var(--muted); background: none; border: 0; border-radius: 6px; padding: 4px 14px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { color: #04101f; background: var(--accent); }
+
+  /* Right-click menu on the desktop */
+  .ctx {
+    position: fixed; z-index: 90; min-width: 200px; padding: 5px; border-radius: 9px;
+    background: rgba(38, 40, 48, .82); border: 1px solid var(--border);
+    backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: 0 12px 34px rgba(0,0,0,.5); font-size: 13px;
+  }
+  .ctx[hidden] { display: none; }
+  .ctx button {
+    display: block; width: 100%; text-align: left; font: inherit; color: var(--text); background: none; border: 0;
+    border-radius: 5px; padding: 4px 10px; cursor: default;
+  }
+  .ctx button:hover { background: var(--accent); color: #04101f; }
+  .ctx hr { border: 0; height: 1px; background: rgba(255,255,255,.12); margin: 5px 6px; }
+</style>
+</head>
+<body>
+<div id="wallpaper" class="wp-night"></div>
+<canvas id="stars"></canvas>
+
+<header id="menubar">
+  <button class="chip" id="folderChip" title="Choose a folder (⌘O)">~/Desktop</button>
+  <span class="spacer"></span>
+  <label class="ctl opt">Min confidence
+    <select id="threshold">
+      <option value="0.5" selected>50%</option>
+      <option value="0.7">70%</option>
+      <option value="0.9">90%</option>
+    </select>
+  </label>
+  <label class="ctl opt"><input type="checkbox" id="allJev"> Ask Jev for every file</label>
+  <button class="btn" id="scanBtn">Rescan</button>
+  <button class="btn primary" id="cleanBtn" disabled>Clean with Jev</button>
+  <button class="btn support" id="supportBtn" hidden>♥ Support</button>
+  <button class="btn icon-btn" id="settingsBtn" title="Settings (⌘,)" aria-label="Settings">⚙︎</button>
+</header>
+
+<main id="desk" aria-label="Files on the desktop"></main>
+<div id="empty">Nothing to clean here ✨</div>
+
+<section class="window" id="sorted" aria-label="Sorted folders">
+  <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span><span class="title" id="sortedTitle">Sorted — 0 files</span></div>
+  <ul id="folders"></ul>
+</section>
+
+<section class="window" id="term" aria-label="Jev log">
+  <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span></div>
+  <div id="termbody" role="log" aria-live="off"></div>
+</section>
+
+<div id="bar" role="status">
+  <span class="msg" id="barMsg"></span>
+  <button class="btn" id="replayBtn">Replay</button>
+  <button class="btn primary" id="moveBtn">Move files</button>
+  <button class="btn" id="undoBtn" hidden>Undo</button>
+  <button class="btn primary" id="keyBtn" hidden>Add TypeSafe key</button>
+</div>
+
+
+<div class="modal" id="settingsModal" hidden>
+  <div class="card settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">Settings</h2>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="general" aria-selected="true">General</button>
+      <button role="tab" data-tab="appearance" aria-selected="false">Appearance</button>
+      <button role="tab" data-tab="license" aria-selected="false">License</button>
+    </div>
+
+    <section class="tabpane" data-pane="general" role="tabpanel">
+      <p class="lead" id="welcomeLead" hidden>Welcome! Jev Cleaner uses <b>Jev</b>, TypeSafe's AI model, to sort files whose names don't give them away. Add your TypeSafe API key to switch it on. Screenshots, PDFs and other obvious files are sorted even without one.</p>
+      <h3>TypeSafe API key</h3>
+      <div class="row">
+        <input type="password" id="keyInput" placeholder="Paste your TypeSafe API key" autocomplete="off" spellcheck="false">
+        <button class="btn primary" id="saveKeyBtn">Save</button>
+      </div>
+      <p class="hint" id="keyStatus"></p>
+      <p class="hint">Stored in your Mac's Keychain. Requests go straight from your Mac to TypeSafe. <a href="#" id="getKeyLink">Get a key →</a></p>
+    </section>
+
+    <section class="tabpane" data-pane="appearance" role="tabpanel" hidden>
+      <h3>Wallpaper</h3>
+      <div class="walls" id="walls"></div>
+      <p class="hint" id="lookHint"></p>
+      <div class="setting"><span>Dim wallpaper</span><input type="range" id="dimRange" min="0" max="0.6" step="0.05"><output id="dimOut"></output></div>
+      <div class="setting"><span>Window glass</span><input type="range" id="glassRange" min="0.5" max="1" step="0.01" title="Lower is more see-through"><output id="glassOut"></output></div>
+      <div class="setting"><span>Accent colour</span><div class="accents" id="accents"></div></div>
+      <div class="setting"><span>Desktop icons</span>
+        <div class="seg" id="iconSeg"><button data-v="0.8">Small</button><button data-v="1">Medium</button><button data-v="1.25">Large</button></div>
+      </div>
+      <button class="link" id="resetLook">Reset appearance</button>
+    </section>
+
+    <section class="tabpane" data-pane="license" role="tabpanel" hidden>
+      <h3>License</h3>
+      <div id="licensedBox" hidden><p>✅ Licensed<span id="licEmail"></span>. Thank you for supporting Jev Cleaner!</p></div>
+      <div id="unlicensedBox">
+        <p class="hint">Jev Cleaner is free. A one-time <b class="price"></b> payment removes the daily reminder forever.</p>
+        <div class="row">
+          <input id="licInput" placeholder="License key from your receipt email" autocomplete="off" spellcheck="false">
+          <button class="btn" id="activateBtn">Activate</button>
+        </div>
+        <p class="hint" id="licStatus"></p>
+        <button class="link" id="buyLink">Buy a license (<span class="price"></span>) →</button>
+      </div>
+    </section>
+    <div class="actions"><button class="btn primary" id="closeSettings">Done</button></div>
+  </div>
+</div>
+
+<div class="ctx" id="ctxMenu" role="menu" hidden>
+  <button role="menuitem" data-act="wallpaper">Change Wallpaper…</button>
+  <button role="menuitem" data-act="pick">Choose Folder…</button>
+  <button role="menuitem" data-act="rescan">Rescan</button>
+  <hr>
+  <button role="menuitem" data-act="settings">Settings…</button>
+</div>
+
+<div class="modal" id="nagModal" hidden>
+  <div class="card nag" role="dialog" aria-modal="true" aria-labelledby="nagTitle">
+    <div class="heart" aria-hidden="true">♥</div>
+    <h2 id="nagTitle">Enjoying Jev Cleaner?</h2>
+    <p>It's free, and it stays free. If it saved you some time, a one-time <b class="price"></b> keeps it going and removes this reminder for good.</p>
+    <div class="actions">
+      <button class="btn primary big" id="nagBuy">Support for <span class="price"></span></button>
+      <button class="btn" id="nagHaveKey">I already have a license key</button>
+    </div>
+    <div id="nagKeyRow" hidden>
+      <p class="hint" id="nagAfterBuy" hidden>After paying, your license key arrives by email. Paste it here:</p>
+      <div class="row">
+        <input id="nagLicInput" placeholder="Paste license key" autocomplete="off" spellcheck="false">
+        <button class="btn primary" id="nagActivate">Activate</button>
+      </div>
+      <p class="hint" id="nagLicStatus"></p>
+    </div>
+    <button class="link" id="nagLater">Maybe later</button>
+  </div>
+</div>
+
+<script>
+const native = (cmd, args = {}) => window.webkit.messageHandlers.jev.postMessage({ cmd, args });
+const $ = (id) => document.getElementById(id);
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const EXT_COLOR = {
+  pdf: "#e5484d", doc: "#2f6fde", docx: "#2f6fde", pages: "#f59e0b", txt: "#6b7280", md: "#6b7280", rtf: "#6b7280",
+  ppt: "#e2611f", pptx: "#e2611f", key: "#2f80ed", xls: "#1f9d55", xlsx: "#1f9d55", csv: "#1f9d55", numbers: "#1f9d55",
+  mp3: "#d946ef", wav: "#d946ef", m4a: "#d946ef", aac: "#d946ef", flac: "#d946ef",
+  mp4: "#7c3aed", mov: "#7c3aed", m4v: "#7c3aed", mkv: "#7c3aed", webm: "#7c3aed", avi: "#7c3aed",
+  zip: "#78716c", dmg: "#78716c", pkg: "#78716c", gz: "#78716c", tar: "#78716c", rar: "#78716c",
+  png: "#0ea5e9", jpg: "#0ea5e9", jpeg: "#0ea5e9", heic: "#0ea5e9", gif: "#0ea5e9", svg: "#0ea5e9",
+};
+const CODE_EXTS = new Set("py js ts tsx jsx sh zsh rb go rs java kt swift c cc cpp h hpp cs php sql ipynb yaml yml toml json html css scss xml".split(" "));
+
+let state = {
+  root: null, files: [], byId: new Map(), categories: [], results: new Map(),
+  counts: {}, phase: "idle", // idle | scanned | running | finished | moved
+};
+let status = { hasKey: false, licensed: false, nagDue: false, price: "₹69" };
+let nagPending = false;
+
+/* ---------- Stars ---------- */
+function drawStars() {
+  const c = $("stars"), dpr = devicePixelRatio || 1;
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  c.style.width = innerWidth + "px"; c.style.height = innerHeight + "px";
+  const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 260; i++) {
+    const x = rnd() * innerWidth, y = rnd() * innerHeight * 0.72, r = rnd() * 1.2 + 0.2;
+    ctx.fillStyle = `rgba(200,220,255,${0.35 + rnd() * 0.6})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+/* ---------- Terminal ---------- */
+const MAX_LINES = 60;
+function termLine(html) {
+  const body = $("termbody");
+  body.querySelector(".cursor")?.remove();
+  const div = document.createElement("div");
+  div.className = "ln"; div.innerHTML = html;
+  body.appendChild(div);
+  while (body.children.length > MAX_LINES) body.firstChild.remove();
+  return div;
+}
+function termCursor() {
+  const body = $("termbody");
+  body.querySelector(".cursor")?.remove();
+  const last = body.lastElementChild || termLine("");
+  last.insertAdjacentHTML("beforeend", ' <span class="cursor"></span>');
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+function shortName(name, width = 26) {
+  return name.length <= width ? name.padEnd(width) : name.slice(0, width - 3) + "...";
+}
+function termHeader() {
+  $("termbody").innerHTML = "";
+  const opts = state.categories.map((c) => `"${c.toLowerCase()}"`).join(",");
+  termLine(`<span class="c-mute"># jev cleaner — powered by Jev (TypeSafe System One)</span>`);
+  termLine(`<span class="c-cmd">$ jev decide '{"state": &lt;file&gt;, "type": "choice",</span>`);
+  termLine(`<span class="c-str">    "options": [${esc(opts)}]}'</span> <span class="c-mute"># × ${state.files.length}</span>`);
+}
+function termResult(file, r) {
+  const name = esc(shortName(file.name));
+  if (r.status === "error") return termLine(`${name} <span class="c-err">✗ ${esc(r.error || "failed")}</span>`);
+  if (r.status === "nokey") return termLine(`${name} <span class="c-key">· needs a TypeSafe key</span>`);
+  const cat = r.category.toLowerCase();
+  const tag = r.source === "rule" ? `<span class="c-rule">rule</span>` : `${Math.round(r.confidence * 100)}%`;
+  if (r.status === "review") return termLine(`${name} <span class="c-rev">? ${cat}</span> · ${tag} <span class="c-mute">(left in place)</span>`);
+  termLine(`${name} → <span class="c-ok">${cat}</span> · ${tag}`);
+}
+
+/* ---------- Sorted panel ---------- */
+function renderFolders() {
+  const ul = $("folders"); ul.innerHTML = "";
+  for (const c of state.categories) {
+    state.counts[c] = 0;
+    const li = document.createElement("li");
+    li.dataset.cat = c; li.className = "empty";
+    li.innerHTML = `<span class="ficon"></span><span class="name">${c}</span><span class="count">0</span>`;
+    ul.appendChild(li);
+  }
+  $("sortedTitle").textContent = `Sorted — ${state.files.length} files`;
+}
+function bump(cat) {
+  const li = $("folders").querySelector(`li[data-cat="${cat}"]`);
+  if (!li) return;
+  state.counts[cat]++;
+  li.querySelector(".count").textContent = state.counts[cat];
+  li.classList.remove("empty");
+  li.classList.add("pulse");
+  requestAnimationFrame(() => requestAnimationFrame(() => li.classList.remove("pulse")));
+}
+
+/* ---------- Desktop icons ---------- */
+function layoutDesk() {
+  const desk = $("desk"); desk.innerHTML = "";
+  const W = desk.clientWidth, H = desk.clientHeight, n = state.files.length;
+  $("empty").style.display = n || !state.root ? "none" : "grid";
+  if (!n) return;
+  const cell = Math.max(46, Math.min(96 * look.iconScale, Math.floor(Math.sqrt((W * H) / n) * 0.95)));
+  const rowsPerCol = Math.max(1, Math.floor((H - 8) / (cell * 1.12)));
+  const cols = Math.ceil(n / rowsPerCol);
+  const colW = Math.min(cell, (W - 16) / cols);
+  const rowH = (H - 8) / rowsPerCol;
+  const crowded = colW < cell * 0.98;
+  const glyph = Math.round(cell * 0.58);
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  state.files.forEach((f, i) => {
+    const col = Math.floor(i / rowsPerCol), row = i % rowsPerCol;
+    const jitter = crowded ? (rnd() - 0.5) * colW * 0.5 : 0;
+    const x = W - 8 - (col + 1) * colW + (colW - cell) / 2 + jitter;
+    const y = 6 + row * rowH + (crowded ? (rnd() - 0.5) * 8 : 0);
+    const el = document.createElement("div");
+    el.className = "icon"; el.dataset.id = f.id;
+    el.style.cssText = `left:${x}px;top:${y}px;width:${cell}px;z-index:${1 + (i % 15)}`;
+    el.title = f.name;
+    el.innerHTML = `<div class="glyph" style="width:${glyph}px;height:${glyph}px"><img loading="lazy" alt="" src="jevthumb://t/${f.id}"></div><div class="label">${esc(f.name)}</div>`;
+    const img = el.querySelector("img");
+    img.onerror = () => { img.parentElement.innerHTML = pageHTML(f); };
+    desk.appendChild(el);
+  });
+}
+function pageHTML(f) {
+  const color = EXT_COLOR[f.ext] || (CODE_EXTS.has(f.ext) ? "#334155" : "#64748b");
+  const label = f.ext ? f.ext.toUpperCase() : "FILE";
+  return `<div class="page"><div class="lines"></div><span class="ext" style="background:${color}">${esc(label)}</span></div>`;
+}
+
+/* ---------- Animation queue ---------- */
+let queue = [], rate = 20, acc = 0, lastT = 0, streamDone = false, inFlight = 0, rafId = 0;
+
+function startPump() {
+  rate = Math.max(14, state.files.length / 6.5); // ~6–7s for a big desktop, like the video
+  acc = 0; lastT = performance.now(); cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(pump);
+}
+function pump(t) {
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  acc += rate * dt;
+  while (acc >= 1 && queue.length) {
+    acc -= 1;
+    const r = queue.splice(Math.floor(Math.random() * Math.min(queue.length, 24)), 1)[0];
+    launch(r);
+  }
+  if (!queue.length) acc = Math.min(acc, 1);
+  if (streamDone && !queue.length && inFlight === 0) return finish();
+  rafId = requestAnimationFrame(pump);
+}
+function launch(r) {
+  const file = state.byId.get(r.id);
+  if (!file) return;
+  termResult(file, r);
+  const el = $("desk").querySelector(`.icon[data-id="${r.id}"]`);
+  if (!el) return;
+  if (r.status !== "ok") { el.classList.add(r.status); return; }
+  const li = $("folders").querySelector(`li[data-cat="${r.category}"]`);
+  if (!li) return;
+  const from = el.getBoundingClientRect(), to = li.querySelector(".ficon").getBoundingClientRect();
+  const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+  const dy = to.top + to.height / 2 - (from.top + from.height / 3);
+  el.style.zIndex = 30;
+  inFlight++;
+  const anim = el.animate(
+    reduceMotion
+      ? [{ opacity: 1 }, { opacity: 0 }]
+      : [
+          { transform: "translate(0,0) scale(1)", opacity: 1, offset: 0 },
+          { transform: `translate(${dx * 0.08}px, ${dy * 0.08 - 18}px) scale(1.08)`, opacity: 1, offset: 0.2 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.18)`, opacity: 0.15, offset: 1 },
+        ],
+    { duration: reduceMotion ? 200 : 620 + Math.random() * 260, easing: "cubic-bezier(.55,0,.7,.4)", fill: "forwards" }
+  );
+  anim.onfinish = () => { el.remove(); bump(r.category); inFlight--; };
+}
+
+/* ---------- Flow ---------- */
+function setBar(html, { move = false, replay = false, undo = false, key = false } = {}) {
+  $("barMsg").innerHTML = html;
+  $("moveBtn").hidden = !move; $("replayBtn").hidden = !replay; $("undoBtn").hidden = !undo; $("keyBtn").hidden = !key;
+  $("bar").classList.toggle("show", !!html);
+}
+function setPhase(p) {
+  state.phase = p;
+  $("cleanBtn").disabled = !(p === "scanned" && state.files.length);
+  $("scanBtn").disabled = p === "running" || !state.root;
+  $("folderChip").disabled = p === "running";
+}
+
+function applyScan(data) {
+  state.root = data.root; state.files = data.files; state.categories = data.categories;
+  state.byId = new Map(data.files.map((f) => [f.id, f]));
+  state.results = new Map();
+  $("folderChip").textContent = data.root.replace(/^\/Users\/[^/]+/, "~");
+  setBar("");
+  renderFolders(); layoutDesk(); termHeader();
+  termLine(`<span class="c-mute"># ${data.files.length} files found. Press “Clean with Jev”.</span>`); termCursor();
+  setPhase("scanned");
+}
+
+async function scan(folder) {
+  if (state.phase === "running") return;
+  try {
+    applyScan(await native("scan", { folder }));
+  } catch (e) {
+    termLine(`<span class="c-err">Couldn't open ${esc(folder)}: ${esc(e.message)}</span>`);
+    termLine(`<span class="c-mute"># Choose a folder with ⌘O, or allow access in System Settings → Privacy &amp; Security → Files and Folders.</span>`);
+    termCursor();
+  }
+}
+
+async function pickFolder() {
+  if (state.phase === "running") return;
+  try {
+    const data = await native("pickFolder");
+    if (data) applyScan(data);
+  } catch (e) {
+    termLine(`<span class="c-err">${esc(e.message)}</span>`); termCursor();
+  }
+}
+
+window.jevEvent = (ev) => {
+  if (ev.type === "start") {
+    const parts = [`${ev.rules} by rule`];
+    if (ev.jev) parts.push(`asking Jev about ${ev.jev}`);
+    if (ev.nokey) parts.push(`${ev.nokey} need a TypeSafe key`);
+    termLine(`<span class="c-mute"># ${parts.join(" · ")}</span>`);
+    return;
+  }
+  if (ev.type === "done") { streamDone = true; return; }
+  state.results.set(ev.id, ev); queue.push(ev);
+};
+
+async function clean() {
+  if (state.phase !== "scanned" || !state.files.length) return;
+  setPhase("running"); termHeader(); setBar("");
+  queue = []; streamDone = false; inFlight = 0;
+  startPump();
+  try {
+    await native("classify", { threshold: Number($("threshold").value), allJev: $("allJev").checked });
+  } catch (e) {
+    termLine(`<span class="c-err">${esc(e.message)}</span>`); streamDone = true;
+  }
+}
+
+function finish() {
+  const all = [...state.results.values()];
+  const count = (s) => all.filter((r) => r.status === s).length;
+  const ok = count("ok"), review = count("review"), errors = count("error"), nokey = count("nokey");
+  termLine(`<span class="c-mute"># done — ${ok} sorted · ${review} to review · ${errors} errors${nokey ? ` · ${nokey} need a key` : ""}</span>`); termCursor();
+  setPhase("finished");
+  const extra = [review && `${review} left for review`, errors && `${errors} failed`, nokey && `${nokey} need a TypeSafe key`].filter(Boolean).join(" · ");
+  setBar(`Preview: <b>${ok}</b> files sorted${extra ? " · " + extra : ""}. Nothing moved yet.`, { move: ok > 0, replay: true, key: nokey > 0 });
+  if (nagPending) { nagPending = false; setTimeout(showNag, 900); }
+}
+
+function replay() {
+  if (state.phase === "running" || !state.results.size) return;
+  renderFolders(); layoutDesk(); termHeader(); setBar("");
+  setPhase("running");
+  queue = [...state.results.values()]; streamDone = true; inFlight = 0;
+  startPump();
+}
+
+async function moveFiles() {
+  const ok = [...state.results.values()].filter((r) => r.status === "ok").length;
+  if (!confirm(`Move ${ok} files into category folders inside ${state.root}?\n\nYou can undo this afterwards.`)) return;
+  $("moveBtn").disabled = true;
+  try {
+    const data = await native("move");
+    termLine(`<span class="c-ok">✨ moved ${data.moved} files</span>`); termCursor();
+    setPhase("moved");
+    setBar(`Moved <b>${data.moved}</b> files into category folders.`, { undo: true });
+  } catch (e) {
+    setBar(`<span class="c-err">${esc(e.message)}</span>`, { replay: true });
+  } finally {
+    $("moveBtn").disabled = false;
+  }
+}
+
+async function undoMove() {
+  $("undoBtn").disabled = true;
+  try {
+    const data = await native("undo");
+    await scan(state.root);
+    termLine(`<span class="c-mute"># restored ${data.restored} files to their original places</span>`); termCursor();
+  } catch (e) {
+    setBar(`<span class="c-err">${esc(e.message)}</span>`);
+  } finally {
+    $("undoBtn").disabled = false;
+  }
+}
+
+/* ---------- Appearance: wallpaper, dim, glass, accent, icon size ---------- */
+const PRESETS = [
+  { id: "night", name: "Night Earth", stars: true },
+  { id: "aurora", name: "Aurora", stars: true },
+  { id: "dusk", name: "Dusk" },
+  { id: "ocean", name: "Deep Sea" },
+  { id: "dunes", name: "Dunes" },
+  { id: "graphite", name: "Graphite" },
+];
+const ACCENTS = ["#5aa9ff", "#a78bfa", "#f472b6", "#fb923c", "#4ade80", "#2dd4bf"];
+const DEFAULT_LOOK = { wallpaper: "night", dim: 0, glass: 0.93, accent: "#5aa9ff", iconScale: 1, v: 0 };
+let look = { ...DEFAULT_LOOK };
+let hasCustom = false, systemV = 0;
+
+const rgba = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+};
+const wallURL = (id) => `jevwall://w/${id}?v=${id === "system" ? systemV : look.v}`;
+
+function applyLook() {
+  const root = document.documentElement.style;
+  root.setProperty("--accent", look.accent);
+  root.setProperty("--accent-soft", rgba(look.accent, 0.28));
+  root.setProperty("--accent-ring", rgba(look.accent, 0.25));
+  root.setProperty("--glass", `rgba(30,32,38,${look.glass})`);
+  root.setProperty("--glass-light", `rgba(40,42,50,${Math.min(1, look.glass + 0.01)})`);
+  root.setProperty("--term-bg", `rgba(20,22,27,${Math.min(1, look.glass + 0.02)})`);
+  root.setProperty("--dim", look.dim);
+  applyWallpaper();
+  syncLookUI();
+}
+
+function applyWallpaper() {
+  const wp = $("wallpaper"), id = look.wallpaper;
+  const preset = PRESETS.find((p) => p.id === id);
+  if (preset) {
+    wp.className = "wp-" + id; wp.style.backgroundImage = "";
+    $("stars").hidden = !preset.stars;
+    return;
+  }
+  // Photos load off-screen first, so a broken one never leaves the desktop blank.
+  const url = wallURL(id), img = new Image();
+  img.onload = () => {
+    if (look.wallpaper !== id) return;
+    wp.className = "photo"; wp.style.backgroundImage = `url("${url}")`;
+    $("stars").hidden = true;
+  };
+  img.onerror = () => {
+    if (look.wallpaper !== id) return;
+    wp.className = "wp-night"; wp.style.backgroundImage = ""; $("stars").hidden = false;
+    lookHint(id === "system"
+      ? "Couldn't read your Mac's wallpaper (dynamic and aerial wallpapers aren't plain pictures). Showing Night Earth for now."
+      : "Couldn't load your picture. Try choosing it again.", true);
+  };
+  img.src = url;
+}
+
+function lookHint(text, err = false) {
+  $("lookHint").textContent = text;
+  $("lookHint").className = "hint" + (err ? " err" : "");
+}
+
+let saveLookT;
+function setLook(patch) {
+  const relayout = "iconScale" in patch && patch.iconScale !== look.iconScale;
+  Object.assign(look, patch);
+  lookHint("");
+  applyLook();
+  if (relayout && state.phase === "scanned") layoutDesk();
+  clearTimeout(saveLookT);
+  saveLookT = setTimeout(() => native("setAppearance", { prefs: look }).catch(() => {}), 250);
+}
+
+function renderWalls() {
+  const tiles = PRESETS.map((p) =>
+    `<button class="wall" data-id="${p.id}"><span class="thumb wp-${p.id}">${p.stars ? '<span class="stars"></span>' : ""}</span>${p.name}</button>`);
+  tiles.push(`<button class="wall" data-id="system" title="Use the picture on your Mac's desktop"><span class="thumb photo" style="background-image:url('${wallURL("system")}'),linear-gradient(135deg,#334155,#1e293b)"></span>Your Mac's</button>`);
+  if (hasCustom) tiles.push(`<button class="wall" data-id="custom"><span class="thumb photo" style="background-image:url('${wallURL("custom")}')"></span>Your picture</button>`);
+  tiles.push(`<button class="wall" data-id="pick" title="Choose any picture"><span class="thumb add">＋</span>Choose…</button>`);
+  $("walls").innerHTML = tiles.join("");
+  syncLookUI();
+}
+
+function syncLookUI() {
+  document.querySelectorAll("#walls .wall").forEach((b) => b.setAttribute("aria-pressed", b.dataset.id === look.wallpaper));
+  document.querySelectorAll("#accents button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === look.accent));
+  document.querySelectorAll("#iconSeg button").forEach((b) => b.setAttribute("aria-pressed", Number(b.dataset.v) === look.iconScale));
+  $("dimRange").value = look.dim; $("dimOut").textContent = Math.round(look.dim * 100) + "%";
+  $("glassRange").value = look.glass; $("glassOut").textContent = Math.round(look.glass * 100) + "%";
+}
+
+async function pickWallpaper() {
+  try {
+    if (!(await native("pickWallpaper"))) return;
+    hasCustom = true;
+    setLook({ wallpaper: "custom", v: Date.now() });
+    renderWalls();
+  } catch (e) {
+    lookHint(e.message, true);
+  }
+}
+
+window.jevRefreshWallpaper = () => {
+  if (look.wallpaper !== "system") return;
+  systemV++; applyWallpaper();
+};
+
+async function loadLook() {
+  try {
+    const a = await native("getAppearance");
+    hasCustom = a.hasCustom;
+    if (a.prefs && typeof a.prefs === "object") look = { ...DEFAULT_LOOK, ...a.prefs };
+    if (look.wallpaper === "custom" && !hasCustom) look.wallpaper = DEFAULT_LOOK.wallpaper;
+  } catch {}
+  $("accents").innerHTML = ACCENTS.map((c) => `<button data-v="${c}" style="background:${c};color:${c}" aria-label="Accent ${c}"></button>`).join("");
+  renderWalls();
+  applyLook();
+}
+
+/* ---------- Settings, license, daily support reminder ---------- */
+async function refreshStatus() {
+  status = await native("status");
+  document.querySelectorAll(".price").forEach((el) => { el.textContent = status.price; });
+  const sb = $("supportBtn");
+  sb.hidden = false;
+  sb.textContent = status.licensed ? "♥ Supporter" : `♥ Support ${status.price}`;
+  sb.classList.toggle("done", status.licensed);
+  $("licensedBox").hidden = !status.licensed;
+  $("unlicensedBox").hidden = status.licensed;
+  $("licEmail").textContent = status.licensed && status.email ? ` to ${status.email}` : "";
+  $("keyInput").placeholder = status.hasKey ? "•••••••••••• (saved, paste to replace)" : "Paste your TypeSafe API key";
+  return status;
+}
+
+const openModal = () => document.querySelector(".modal:not([hidden])");
+function showModal(id, focusId) {
+  $(id).hidden = false;
+  setTimeout(() => focusId && $(focusId).focus(), 50);
+}
+function hideModal(id) { $(id).hidden = true; }
+
+function showTab(name) {
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll(".tabpane").forEach((p) => { p.hidden = p.dataset.pane !== name; });
+}
+
+function openSettings(welcome = false, tab = "general") {
+  showTab(tab);
+  $("welcomeLead").hidden = !welcome;
+  lookHint("");
+  $("keyStatus").textContent = ""; $("keyStatus").className = "hint";
+  $("licStatus").textContent = ""; $("licStatus").className = "hint";
+  showModal("settingsModal", tab === "general" ? "keyInput" : null);
+}
+
+async function saveKey() {
+  const key = $("keyInput").value.trim();
+  if (!key) return;
+  const st = $("keyStatus");
+  st.className = "hint"; st.textContent = "Checking key with TypeSafe…";
+  $("saveKeyBtn").disabled = true;
+  try {
+    await native("saveKey", { key });
+    $("keyInput").value = "";
+    st.className = "hint ok"; st.textContent = "Key saved ✓ Jev is ready.";
+    await refreshStatus();
+  } catch (e) {
+    st.className = "hint err"; st.textContent = e.message;
+  } finally {
+    $("saveKeyBtn").disabled = false;
+  }
+}
+
+async function activate(inputId, statusId, btnId) {
+  const key = $(inputId).value.trim();
+  const st = $(statusId);
+  if (!key) { st.className = "hint err"; st.textContent = "Paste the license key from your receipt email."; return false; }
+  st.className = "hint"; st.textContent = "Activating…";
+  $(btnId).disabled = true;
+  try {
+    const res = await native("activateLicense", { key });
+    st.className = "hint ok"; st.textContent = `Activated ✓ Thank you${res.email ? ", " + res.email : ""}! ♥`;
+    await refreshStatus();
+    return true;
+  } catch (e) {
+    st.className = "hint err"; st.textContent = e.message;
+    return false;
+  } finally {
+    $(btnId).disabled = false;
+  }
+}
+
+function showNag() {
+  if (status.licensed || openModal()) return;
+  if (state.phase === "running") { nagPending = true; return; }
+  $("nagKeyRow").hidden = true; $("nagAfterBuy").hidden = true;
+  $("nagLicStatus").textContent = "";
+  showModal("nagModal", "nagBuy");
+  native("nagShown");
+}
+window.jevCheckNag = async () => {
+  const s = await refreshStatus();
+  if (s.nagDue) showNag();
+};
+
+function supportClicked() {
+  if (status.licensed) return;
+  $("nagKeyRow").hidden = true; $("nagAfterBuy").hidden = true; $("nagLicStatus").textContent = "";
+  showModal("nagModal", "nagBuy");
+}
+
+window.jevMenu = (action) => {
+  if (action === "settings") return openSettings();
+  if (action === "support") return supportClicked();
+  if (action === "wallpaper") return openSettings(false, "appearance");
+  if (openModal()) return;
+  if (action === "pick") return pickFolder();
+  if (action === "rescan") return state.root && scan(state.root);
+  if (action === "clean") return clean();
+};
+
+/* ---------- Wiring ---------- */
+$("scanBtn").onclick = () => state.root && scan(state.root);
+$("cleanBtn").onclick = clean;
+$("replayBtn").onclick = replay;
+$("moveBtn").onclick = moveFiles;
+$("undoBtn").onclick = undoMove;
+$("keyBtn").onclick = () => openSettings();
+$("folderChip").onclick = pickFolder;
+$("settingsBtn").onclick = () => openSettings();
+$("supportBtn").onclick = supportClicked;
+
+$("saveKeyBtn").onclick = saveKey;
+$("keyInput").onkeydown = (e) => { if (e.key === "Enter") saveKey(); };
+$("getKeyLink").onclick = (e) => { e.preventDefault(); native("openKeyConsole"); };
+$("activateBtn").onclick = () => activate("licInput", "licStatus", "activateBtn");
+$("licInput").onkeydown = (e) => { if (e.key === "Enter") $("activateBtn").click(); };
+$("buyLink").onclick = () => native("openCheckout");
+$("closeSettings").onclick = () => hideModal("settingsModal");
+
+$("nagBuy").onclick = () => {
+  native("openCheckout");
+  $("nagKeyRow").hidden = false; $("nagAfterBuy").hidden = false;
+};
+$("nagHaveKey").onclick = () => { $("nagKeyRow").hidden = false; $("nagLicInput").focus(); };
+$("nagActivate").onclick = async () => {
+  if (await activate("nagLicInput", "nagLicStatus", "nagActivate")) setTimeout(() => hideModal("nagModal"), 1400);
+};
+$("nagLicInput").onkeydown = (e) => { if (e.key === "Enter") $("nagActivate").click(); };
+$("nagLater").onclick = () => hideModal("nagModal");
+
+document.querySelectorAll(".tabs button").forEach((b) => { b.onclick = () => showTab(b.dataset.tab); });
+$("walls").onclick = (e) => {
+  const id = e.target.closest(".wall")?.dataset.id;
+  if (!id) return;
+  if (id === "pick") return pickWallpaper();
+  if (id === "system") systemV++;
+  setLook({ wallpaper: id });
+};
+$("accents").onclick = (e) => { const v = e.target.closest("button")?.dataset.v; if (v) setLook({ accent: v }); };
+$("iconSeg").onclick = (e) => { const v = e.target.closest("button")?.dataset.v; if (v) setLook({ iconScale: Number(v) }); };
+$("dimRange").oninput = () => setLook({ dim: Number($("dimRange").value) });
+$("glassRange").oninput = () => setLook({ glass: Number($("glassRange").value) });
+$("resetLook").onclick = () => setLook({ ...DEFAULT_LOOK, v: look.v });
+
+// macOS-style right-click menu on the desktop (also hides WebKit's "Reload", which would lose a preview).
+const ctx = $("ctxMenu");
+const hideCtx = () => { ctx.hidden = true; };
+addEventListener("contextmenu", (e) => {
+  if (e.target.closest("input, textarea")) return;
+  e.preventDefault();
+  if (openModal() || e.target.closest(".window, #bar, #menubar")) return hideCtx();
+  ctx.querySelector('[data-act="rescan"]').disabled = !state.root || state.phase === "running";
+  ctx.querySelector('[data-act="pick"]').disabled = state.phase === "running";
+  ctx.hidden = false;
+  ctx.style.left = Math.min(e.clientX, innerWidth - ctx.offsetWidth - 6) + "px";
+  ctx.style.top = Math.min(e.clientY, innerHeight - ctx.offsetHeight - 6) + "px";
+});
+ctx.onclick = (e) => {
+  const act = e.target.closest("button:not(:disabled)")?.dataset.act;
+  if (!act) return;
+  hideCtx();
+  window.jevMenu(act);
+};
+addEventListener("mousedown", (e) => { if (!ctx.contains(e.target)) hideCtx(); });
+addEventListener("blur", hideCtx);
+
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !ctx.hidden) return hideCtx();
+  if (e.key === "Escape" && openModal()) hideModal(openModal().id);
+});
+let resizeT;
+addEventListener("resize", () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { drawStars(); if (state.phase === "scanned") layoutDesk(); }, 150);
+});
+
+(async () => {
+  drawStars();
+  setPhase("idle");
+  await loadLook();
+  const s = await refreshStatus();
+  await scan(await native("defaultFolder"));
+  if (!s.hasKey) openSettings(true);
+  else if (s.nagDue) setTimeout(showNag, 1500);
+})();
+</script>
+</body>
+</html>
